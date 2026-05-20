@@ -1,0 +1,59 @@
+import { useEffect, useRef } from 'react'
+import { useConversationStore } from '../stores/conversationStore'
+import type { Message, AISummary } from '../types'
+
+export function useWebSocket(agentId: string | null) {
+  const wsRef = useRef<WebSocket | null>(null)
+  const destroyedRef = useRef(false)
+  const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const { appendMessage, setSummary, updateConversationOneLine } = useConversationStore()
+
+  useEffect(() => {
+    if (!agentId) return
+    destroyedRef.current = false
+
+    const connect = () => {
+      if (destroyedRef.current) return
+
+      const ws = new WebSocket(`ws://localhost:8000/ws/agent/${agentId}`)
+      wsRef.current = ws
+
+      ws.onmessage = (e) => {
+        try {
+          const event = JSON.parse(e.data)
+          if (event.type === 'message_new') {
+            const msg = event.data as Message
+            appendMessage(msg.conversation_id, msg)
+          } else if (event.type === 'summary_ready') {
+            const d = event.data
+            setSummary(d.conversation_id, d as AISummary)
+            if (d.one_liner) {
+              updateConversationOneLine(d.conversation_id, d.one_liner, d.sentiment)
+            }
+          }
+        } catch {}
+      }
+
+      ws.onclose = () => {
+        if (!destroyedRef.current) {
+          retryRef.current = setTimeout(connect, 5000)
+        }
+      }
+
+      ws.onerror = () => {
+        // onerror is followed by onclose, which handles reconnect
+      }
+    }
+
+    connect()
+
+    return () => {
+      destroyedRef.current = true
+      if (retryRef.current) clearTimeout(retryRef.current)
+      if (wsRef.current) {
+        wsRef.current.onclose = null
+        wsRef.current.close()
+      }
+    }
+  }, [agentId])
+}

@@ -1,0 +1,45 @@
+from sqlalchemy import String, Enum as SAEnum, DateTime, ForeignKey
+from sqlalchemy.orm import mapped_column, Mapped, relationship
+from datetime import datetime, timezone
+from .base import Base, TimestampMixin, new_uuid, utcnow
+import enum
+
+
+class ChannelType(str, enum.Enum):
+    whatsapp = "whatsapp"
+    instagram = "instagram"
+    email = "email"
+    telegram = "telegram"
+    simulator = "simulator"
+
+
+class Customer(Base, TimestampMixin):
+    __tablename__ = "customers"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_uuid)
+    display_name: Mapped[str] = mapped_column(String, nullable=False)
+    email: Mapped[str | None] = mapped_column(String, nullable=True)
+    phone: Mapped[str | None] = mapped_column(String, nullable=True)
+    metadata_json: Mapped[str] = mapped_column(String, default="{}")
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+    channel_identifiers = relationship("ChannelIdentifier", back_populates="customer", cascade="all, delete-orphan")
+    conversations = relationship("Conversation", back_populates="customer")
+    transactions = relationship("Transaction", back_populates="customer")
+    documents = relationship("UploadedDocument", back_populates="customer")
+    consent_records = relationship("ConsentRecord", back_populates="customer")
+
+
+class ChannelIdentifier(Base):
+    __tablename__ = "channel_identifiers"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_uuid)
+    customer_id: Mapped[str] = mapped_column(String, ForeignKey("customers.id"), nullable=False)
+    channel: Mapped[ChannelType] = mapped_column(SAEnum(ChannelType), nullable=False)
+    identifier: Mapped[str] = mapped_column(String, nullable=False)
+
+    customer = relationship("Customer", back_populates="channel_identifiers")
+
+    __table_args__ = (
+        __import__("sqlalchemy").UniqueConstraint("channel", "identifier", name="uq_channel_identifier"),
+    )

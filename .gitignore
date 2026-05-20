@@ -1,0 +1,54 @@
+﻿# ── Python ──────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+
+# ── Data / DB ────────────────────────────────────────────
+data/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# ── LanceDB ──────────────────────────────────────────────
+*.lance/
+
+# ── HuggingFace model cache ──────────────────────────────
+.cache/
+*.bin
+*.safetensors
+*.pt
+*.pth
+
+# ── Node / pnpm ──────────────────────────────────────────
+node_modules/
+.pnpm-store/
+frontend/dist/
+frontend/.vite/
+
+# ── IDE ──────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# ── Logs ─────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Secrets ──────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+secrets/
+*.pem
+*.key
+
+# ── Temp bat launchers ───────────────────────────────────
+_run_*.bat
+*.tmp
