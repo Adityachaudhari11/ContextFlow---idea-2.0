@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { Mail, X, CreditCard, Landmark, Wallet, Banknote, ArrowUpRight, ArrowDownLeft, ExternalLink, Copy, Check } from 'lucide-react'
+import { Mail, X, CreditCard, Landmark, Wallet, Banknote, ArrowUpRight, ArrowDownLeft, Copy, Check } from 'lucide-react'
 import { useConversationStore } from '../../stores/conversationStore'
 import { conversations as convApi } from '../../services/api'
 import type { Conversation } from '../../types'
@@ -74,7 +74,7 @@ const COLOR_MAP: Record<string, { bg: string; text: string; border: string; ligh
 }
 
 const GMAIL_URL = 'https://mail.google.com/mail/u/0/#inbox?compose=new'
-const INBOX_EMAIL = 'virajbhatia1611@gmail.com'
+const INBOX_EMAIL = 'neobanksupport@gmail.com'
 
 function CopyEmailButton({ email }: { email: string }) {
   const [copied, setCopied] = useState(false)
@@ -244,7 +244,7 @@ export default function InboxPage() {
   const [tab, setTab] = useState<'active' | 'history'>('active')
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string[]>([])
-  const [panelWidth, setPanelWidth] = useState(300)
+  const [panelWidth, setPanelWidth] = useState(320)
   const [showTestModal, setShowTestModal] = useState(false)
 
   const dragging = useRef(false)
@@ -345,7 +345,7 @@ export default function InboxPage() {
       <div className="flex-1 flex overflow-hidden min-h-0">
 
         {/* Left panel — resizable */}
-        <div style={{ width: panelWidth, flexShrink: 0 }} className="overflow-hidden flex flex-col min-h-0">
+        <div style={{ width: panelWidth, flexShrink: 0 }} className="overflow-hidden flex flex-col min-h-0 min-w-0">
           <ConversationList
             conversations={filtered}
             onSelect={setActive}

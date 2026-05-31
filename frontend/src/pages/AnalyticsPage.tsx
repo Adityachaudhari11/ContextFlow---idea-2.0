@@ -3,7 +3,7 @@ import { analytics } from '../services/api'
 import axios from 'axios'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend,
+  PieChart, Pie, Cell,
 } from 'recharts'
 import { MessageSquare, CheckCircle, Clock, AlertTriangle, TrendingUp, Inbox, Ban, Users, UserX, FlaskConical } from 'lucide-react'
 
