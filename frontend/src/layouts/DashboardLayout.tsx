@@ -1,13 +1,17 @@
 import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { MessageSquare, Megaphone, Shield, BarChart3, Home, ChevronLeft, ChevronRight } from 'lucide-react'
+import { motion } from 'framer-motion'
+import {
+  MessageSquare, Megaphone, Shield, BarChart3,
+  Home, ChevronLeft, ChevronRight,
+} from 'lucide-react'
 import { useWebSocket } from '../hooks/useWebSocket'
 
 const navItems = [
-  { to: '/inbox',      label: 'Inbox',      icon: <MessageSquare className="w-5 h-5 flex-shrink-0" /> },
-  { to: '/campaigns',  label: 'Campaigns',  icon: <Megaphone className="w-5 h-5 flex-shrink-0" /> },
-  { to: '/compliance', label: 'Compliance', icon: <Shield className="w-5 h-5 flex-shrink-0" /> },
-  { to: '/analytics',  label: 'Analytics',  icon: <BarChart3 className="w-5 h-5 flex-shrink-0" /> },
+  { to: '/inbox',      label: 'Inbox',      icon: MessageSquare, num: '01' },
+  { to: '/campaigns',  label: 'Campaigns',  icon: Megaphone,     num: '02' },
+  { to: '/compliance', label: 'Compliance', icon: Shield,        num: '03' },
+  { to: '/analytics',  label: 'Analytics',  icon: BarChart3,     num: '04' },
 ]
 
 export default function DashboardLayout() {
@@ -16,100 +20,187 @@ export default function DashboardLayout() {
   const [open, setOpen] = useState(true)
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-100">
-
-      {/* Sidebar */}
+    <div
+      className="flex h-screen overflow-hidden"
+      style={{ background: '#F9F8F4' }}
+      data-testid="dashboard-layout"
+    >
+      {/* ── Sidebar ────────────────────────────────────── */}
       <aside
-        className={`relative flex-shrink-0 bg-[#0f3833] flex flex-col transition-all duration-200 ${open ? 'w-56' : 'w-14'}`}
+        data-testid="dashboard-sidebar"
+        style={{
+          width: open ? 224 : 60,
+          background: '#F9F8F4',
+          borderRight: '1px solid rgba(28,28,26,0.08)',
+          transition: 'width 320ms cubic-bezier(0.22,1,0.36,1)',
+        }}
+        className="relative flex-shrink-0 flex flex-col overflow-hidden"
       >
-        {/* Logo + collapse toggle */}
-        <div className="h-14 flex items-center justify-between px-3 border-b border-white/10 flex-shrink-0">
-          {/* Logo — click goes home */}
+        {/* Logo block */}
+        <div
+          className="h-14 flex items-center justify-between px-4 flex-shrink-0"
+          style={{ borderBottom: '1px solid rgba(28,28,26,0.08)' }}
+        >
           <button
             onClick={() => navigate('/home')}
-            className="flex items-center gap-2 min-w-0 group"
-            title="Go to home"
+            className="flex items-center gap-2.5 min-w-0 group"
+            data-testid="sidebar-logo"
+            title="ContextFlow home"
           >
-            <div className="w-7 h-7 bg-teal-400 group-hover:bg-teal-300 rounded-lg flex items-center justify-center shadow flex-shrink-0 transition-colors">
-              <MessageSquare className="w-4 h-4 text-white" />
+            <div
+              className="w-7 h-7 rounded flex items-center justify-center flex-shrink-0 group-hover:opacity-80"
+              style={{ background: '#1E4237' }}
+            >
+              <MessageSquare className="w-3.5 h-3.5" style={{ color: '#FDFBF7' }} />
             </div>
             {open && (
-              <span className="text-white group-hover:text-teal-200 font-semibold text-sm truncate transition-colors">
+              <span
+                className="truncate"
+                style={{ fontFamily: '"Cormorant Garamond", Georgia, serif', fontSize: 18, color: '#1C1C1A', fontWeight: 500 }}
+              >
                 ContextFlow
               </span>
             )}
           </button>
 
-          {/* Collapse button — only visible when sidebar is open */}
           {open && (
             <button
               onClick={() => setOpen(false)}
-              className="text-white/50 hover:text-white transition-colors flex-shrink-0 ml-1"
-              title="Collapse sidebar"
+              data-testid="sidebar-collapse"
+              className="flex-shrink-0 hover:opacity-70"
+              style={{ color: '#8A8A85' }}
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
           )}
         </div>
 
-        {/* Nav links */}
-        <nav className="flex-1 py-3 space-y-0.5 px-2 overflow-hidden">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              title={!open ? item.label : undefined}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-2 py-2.5 rounded-lg transition-colors text-sm font-medium ${
-                  isActive
-                    ? 'bg-teal-600 text-white shadow-sm'
-                    : 'text-white/70 hover:bg-white/10 hover:text-white'
-                }`
-              }
-            >
-              {item.icon}
-              {open && <span className="truncate">{item.label}</span>}
-            </NavLink>
-          ))}
+        {/* Navigation */}
+        <nav className="flex-1 py-5 px-3 space-y-0.5 overflow-hidden">
+          {open && (
+            <p className="px-2 mb-3" style={{ fontFamily: '"Manrope",sans-serif', fontWeight: 700, fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#B5B3AC' }}>
+              Sections
+            </p>
+          )}
+
+          {navItems.map((item) => {
+            const Icon = item.icon
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                title={!open ? item.label : undefined}
+                data-testid={`sidebar-nav-${item.label.toLowerCase()}`}
+                className={({ isActive }) =>
+                  `relative flex items-center gap-2.5 px-2.5 py-2 rounded text-sm font-medium border ${
+                    isActive
+                      ? 'border-black/[0.08] bg-white text-ink-900 shadow-[0_1px_3px_rgba(28,28,26,0.06)]'
+                      : 'border-transparent text-ink-500 hover:bg-ivory-200 hover:text-ink-900'
+                  }`
+                }
+                style={{ fontFamily: '"Manrope",sans-serif', fontWeight: 500 }}
+              >
+                {({ isActive }) => (
+                  <>
+                    {open && (
+                      <span
+                        className="flex-shrink-0"
+                        style={{
+                          fontFamily: '"JetBrains Mono",monospace',
+                          fontSize: 9,
+                          letterSpacing: '0.12em',
+                          color: isActive ? '#D37B5C' : '#B5B3AC',
+                        }}
+                      >
+                        {item.num}
+                      </span>
+                    )}
+                    <Icon className="w-4 h-4 flex-shrink-0" />
+                    {open && <span className="truncate">{item.label}</span>}
+                    {isActive && open && (
+                      <motion.span
+                        layoutId="sidebar-pip"
+                        className="absolute right-2.5 w-1 h-1 rounded-full"
+                        style={{ background: '#D37B5C' }}
+                      />
+                    )}
+                  </>
+                )}
+              </NavLink>
+            )
+          })}
         </nav>
 
         {/* Footer */}
-        <div className="px-2 pb-3 border-t border-white/10 pt-2 flex-shrink-0">
+        <div
+          className="px-3 pb-4 pt-3 flex-shrink-0"
+          style={{ borderTop: '1px solid rgba(28,28,26,0.08)' }}
+        >
           <NavLink
             to="/home"
-            title={!open ? 'Home' : undefined}
-            className="flex items-center gap-3 px-2 py-2 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors text-xs"
+            title={!open ? 'Back to landing' : undefined}
+            data-testid="sidebar-home"
+            className="flex items-center gap-2.5 px-2.5 py-2 rounded text-ink-500 hover:bg-ivory-200 hover:text-ink-900 text-xs"
+            style={{ fontFamily: '"Manrope",sans-serif' }}
           >
             <Home className="w-4 h-4 flex-shrink-0" />
-            {open && <span className="truncate">Home</span>}
+            {open && <span>Back to landing</span>}
           </NavLink>
+
           {open && (
-            <div className="flex items-center gap-2 px-2 py-2 mt-1">
-              <div className="w-6 h-6 rounded-full bg-teal-500/20 border border-teal-500/40 flex items-center justify-center text-teal-300 text-xs font-bold flex-shrink-0">
+            <div
+              className="mt-3 mx-0.5 pt-3 flex items-center gap-2.5"
+              style={{ borderTop: '1px solid rgba(28,28,26,0.08)' }}
+            >
+              <div
+                className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                style={{
+                  fontFamily: '"Cormorant Garamond",Georgia,serif',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  background: '#FAEEE5',
+                  border: '1px solid rgba(211,123,92,0.3)',
+                  color: '#8C4C32',
+                }}
+              >
                 N
               </div>
               <div className="min-w-0">
-                <p className="text-white text-xs font-medium truncate">NeoBank</p>
-                <p className="text-white/40 text-[10px] truncate">Demo account</p>
+                <p style={{ fontFamily: '"Manrope",sans-serif', fontSize: 12, fontWeight: 600, color: '#1C1C1A' }} className="truncate leading-none">
+                  NeoBank
+                </p>
+                <p style={{ fontFamily: '"JetBrains Mono",monospace', fontSize: 9.5, color: '#8A8A85', marginTop: 2 }} className="truncate">
+                  demo · agent
+                </p>
               </div>
             </div>
           )}
         </div>
 
-        {/* Expand tab — floats on the right edge when sidebar is collapsed */}
+        {/* Expand toggle */}
         {!open && (
           <button
             onClick={() => setOpen(true)}
-            title="Expand sidebar"
-            className="absolute top-3.5 -right-3 z-10 w-6 h-6 rounded-full bg-[#0f3833] border border-white/20 shadow flex items-center justify-center text-white/70 hover:text-white hover:bg-teal-700 transition-colors"
+            data-testid="sidebar-expand"
+            className="absolute top-5 -right-3 z-10 w-6 h-6 rounded-full flex items-center justify-center hover:opacity-90"
+            style={{
+              background: '#FDFBF7',
+              border: '1px solid rgba(28,28,26,0.14)',
+              boxShadow: '0 1px 4px rgba(28,28,26,0.08)',
+              color: '#5C5C58',
+            }}
           >
             <ChevronRight className="w-3.5 h-3.5" />
           </button>
         )}
       </aside>
 
-      {/* Main content */}
-      <main className="flex-1 min-h-0 min-w-0 overflow-hidden">
+      {/* ── Main ───────────────────────────────────────── */}
+      <main
+        className="flex-1 min-h-0 min-w-0 overflow-hidden"
+        style={{ background: '#FDFBF7' }}
+        data-testid="dashboard-main"
+      >
         <Outlet />
       </main>
     </div>
