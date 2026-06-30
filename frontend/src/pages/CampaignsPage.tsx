@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Plus, Send, CheckCircle, AlertCircle, Megaphone, Trash2, ChevronRight, Loader2, Mail, Phone, MessageSquare, Monitor, Search, ShieldOff, Users, UserPlus, CalendarClock, X, Crown, Zap, RefreshCw, TrendingUp } from 'lucide-react'
+import { Plus, Send, CheckCircle, AlertCircle, Megaphone, Trash2, ChevronRight, Loader2, Mail, Phone, MessageSquare, Monitor, Search, ShieldOff, Users, UserPlus, CalendarClock, X } from 'lucide-react'
 import { campaignsApi } from '../services/api'
 import type { Campaign } from '../types'
 import { RegisterModalWrapper } from '../components/RegisterModal'
@@ -7,13 +7,13 @@ import { RegisterModalWrapper } from '../components/RegisterModal'
 // ─── Status config ─────────────────────────────────────────────────────────
 
 const STATUS = {
-  draft:            { label: 'Draft',           color: 'bg-gray-100 text-gray-600 border-gray-200',     dot: 'bg-gray-400' },
-  pending_approval: { label: 'Pending Approval', color: 'bg-amber-50 text-amber-700 border-amber-200',   dot: 'bg-amber-400' },
-  approved:         { label: 'Approved',         color: 'bg-blue-50 text-blue-700 border-blue-200',      dot: 'bg-blue-500' },
-  running:          { label: 'Sending…',         color: 'bg-teal-50 text-teal-700 border-teal-200',      dot: 'bg-teal-500' },
-  completed:        { label: 'Completed',        color: 'bg-green-50 text-green-700 border-green-200',   dot: 'bg-green-500' },
-  cancelled:        { label: 'Cancelled',        color: 'bg-red-50 text-red-600 border-red-200',         dot: 'bg-red-400' },
-  scheduled:        { label: 'Scheduled',        color: 'bg-purple-50 text-purple-700 border-purple-200', dot: 'bg-purple-500' },
+  draft:            { label: 'Draft',           color: 'bg-gray-100 text-gray-600 border-gray-200',      dot: 'bg-gray-400'  },
+  pending_approval: { label: 'Pending Approval', color: 'bg-amber-50 text-amber-700 border-amber-200',    dot: 'bg-amber-400' },
+  approved:         { label: 'Approved',         color: 'bg-blue-50 text-blue-700 border-blue-200',       dot: 'bg-blue-500'  },
+  running:          { label: 'Sending…',         color: 'bg-teal-50 text-teal-700 border-teal-200',       dot: 'bg-teal-500'  },
+  completed:        { label: 'Completed',        color: 'bg-green-50 text-green-700 border-green-200',    dot: 'bg-green-500' },
+  cancelled:        { label: 'Cancelled',        color: 'bg-red-50 text-red-600 border-red-200',          dot: 'bg-red-400'   },
+  scheduled:        { label: 'Scheduled',        color: 'bg-purple-50 text-purple-700 border-purple-200', dot: 'bg-purple-500'},
 } as const
 
 const CHANNEL_ICONS: Record<string, React.ReactElement> = {
@@ -35,109 +35,29 @@ const CHANNEL_COLORS: Record<string, string> = {
 type Filter = 'all' | 'draft' | 'pending_approval' | 'approved' | 'scheduled' | 'running' | 'completed'
 
 const FILTERS: { key: Filter; label: string }[] = [
-  { key: 'all',             label: 'All'       },
-  { key: 'draft',           label: 'Draft'     },
-  { key: 'pending_approval',label: 'Pending'   },
-  { key: 'approved',        label: 'Approved'  },
-  { key: 'scheduled',       label: 'Scheduled' },
-  { key: 'running',         label: 'Live'      },
-  { key: 'completed',       label: 'Done'      },
+  { key: 'all',              label: 'All'       },
+  { key: 'draft',            label: 'Draft'     },
+  { key: 'pending_approval', label: 'Pending'   },
+  { key: 'approved',         label: 'Approved'  },
+  { key: 'scheduled',        label: 'Scheduled' },
+  { key: 'running',          label: 'Live'      },
+  { key: 'completed',        label: 'Done'      },
 ]
 
 const BLANK = { name: '', content_template: '', target_channels: ['whatsapp'] as string[] }
 
-// ─── Phone Mockup Preview ────────────────────────────────────────────────────
-
-function PhoneMockup({ template, channels }: { template: string; channels: string[] }) {
-  const isWhatsApp = channels.includes('whatsapp')
-  const isEmail = channels.includes('email')
-  const sampleName = 'Priya'
-  const preview = template.replace(/\{\{name\}\}/g, sampleName)
-
-  return (
-    <div className="flex items-center justify-center py-4">
-      <div
-        className="relative rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-gray-800"
-        style={{
-          width: 220,
-          height: 420,
-          background: isWhatsApp ? 'linear-gradient(135deg, #0d1117 0%, #1a1a2e 100%)' : '#f1f5f9',
-          flexShrink: 0,
-        }}
-      >
-        {/* Phone notch */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-6 bg-gray-900 rounded-b-2xl z-10" />
-
-        {/* Status bar */}
-        <div className="flex items-center justify-between px-4 pt-7 pb-1">
-          <span className="text-white text-[9px] font-medium">9:41</span>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-1.5 bg-white/60 rounded-sm" />
-            <div className="w-1 h-1 rounded-full bg-white/60" />
-          </div>
-        </div>
-
-        {/* App header */}
-        <div className={`px-3 py-2 flex items-center gap-2 ${isWhatsApp ? 'bg-[#075e54]' : 'bg-blue-600'}`}>
-          <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center">
-            {isWhatsApp ? <Phone className="w-3.5 h-3.5 text-white" /> : <Mail className="w-3.5 h-3.5 text-white" />}
-          </div>
-          <div>
-            <p className="text-white text-[10px] font-bold">NeoBank Support</p>
-            <p className="text-white/60 text-[9px]">{isWhatsApp ? 'WhatsApp' : isEmail ? 'Email' : 'Message'}</p>
-          </div>
-        </div>
-
-        {/* Message area */}
-        <div
-          className="flex-1 px-3 py-4 overflow-hidden"
-          style={{
-            height: 280,
-            background: isWhatsApp
-              ? 'url("data:image/svg+xml,%3Csvg width=\'20\' height=\'20\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Ccircle cx=\'2\' cy=\'2\' r=\'1\' fill=\'%23ffffff08\'/%3E%3C/svg%3E") repeat, linear-gradient(135deg, #0b141a, #0d1b21)'
-              : '#e2e8f0',
-          }}
-        >
-          {template ? (
-            <div
-              className={`max-w-[90%] rounded-2xl px-3 py-2 shadow-sm text-[10px] leading-relaxed whitespace-pre-wrap ${
-                isWhatsApp
-                  ? 'bg-[#202c33] text-[#e9edef] rounded-tl-sm'
-                  : 'bg-white text-gray-800 rounded-tl-sm shadow-md'
-              }`}
-            >
-              {preview}
-              <div className={`text-right text-[8px] mt-1 ${isWhatsApp ? 'text-[#8696a0]' : 'text-gray-400'}`}>
-                9:41 AM ✓✓
-              </div>
-            </div>
-          ) : (
-            <div className={`text-[10px] italic ${isWhatsApp ? 'text-white/30' : 'text-gray-400'}`}>
-              Preview will appear here…
-            </div>
-          )}
-        </div>
-
-        {/* Home bar */}
-        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-16 h-1 bg-white/30 rounded-full" />
-      </div>
-    </div>
-  )
-}
-
 // ─── Main Component ─────────────────────────────────────────────────────────
 
 export default function CampaignsPage() {
-  const [campaigns, setCampaigns]     = useState<Campaign[]>([])
-  const [selected, setSelected]       = useState<Campaign | null>(null)
-  const [filter, setFilter]           = useState<Filter>('all')
-  const [creating, setCreating]       = useState(false)
-  const [form, setForm]               = useState(BLANK)
-  const [busy, setBusy]               = useState(false)
-  const [actionMsg, setActionMsg]     = useState<string | null>(null)
+  const [campaigns, setCampaigns]       = useState<Campaign[]>([])
+  const [selected, setSelected]         = useState<Campaign | null>(null)
+  const [filter, setFilter]             = useState<Filter>('all')
+  const [creating, setCreating]         = useState(false)
+  const [form, setForm]                 = useState(BLANK)
+  const [busy, setBusy]                 = useState(false)
+  const [actionMsg, setActionMsg]       = useState<string | null>(null)
   const [showRegister, setShowRegister] = useState(false)
-  const [liveRefresh, setLiveRefresh] = useState(false)
-  const [panelWidth, setPanelWidth]   = useState(300)
+  const [panelWidth, setPanelWidth]     = useState(300)
   const dragging = useRef(false)
   const startX   = useRef(0)
   const startW   = useRef(0)
@@ -146,7 +66,7 @@ export default function CampaignsPage() {
     dragging.current = true
     startX.current   = e.clientX
     startW.current   = panelWidth
-    document.body.style.cursor    = 'col-resize'
+    document.body.style.cursor     = 'col-resize'
     document.body.style.userSelect = 'none'
   }, [panelWidth])
 
@@ -158,7 +78,7 @@ export default function CampaignsPage() {
     }
     const onUp = () => {
       dragging.current = false
-      document.body.style.cursor    = ''
+      document.body.style.cursor     = ''
       document.body.style.userSelect = ''
     }
     window.addEventListener('mousemove', onMove)
@@ -173,29 +93,24 @@ export default function CampaignsPage() {
     })
   }, [])
 
-  // Dynamic polling — auto-refresh every 5s when there are live/scheduled campaigns
-  useEffect(() => {
-    const hasActive = campaigns.some((c) => c.status === 'running' || c.status === 'scheduled')
-    if (!hasActive) return
-    setLiveRefresh(true)
-    const interval = setInterval(async () => {
-      const data = await campaignsApi.list()
-      setCampaigns(data)
-      if (selected) {
-        const fresh = data.find((c) => c.id === selected.id)
-        if (fresh) setSelected(fresh)
-      }
-    }, 5000)
-    return () => { clearInterval(interval); setLiveRefresh(false) }
-  }, [campaigns.map((c) => c.status).join(',')])
-
-  // Sync selected with latest list data
+  // Sync selected with latest list data (e.g. after status change)
   useEffect(() => {
     if (selected) {
       const fresh = campaigns.find((c) => c.id === selected.id)
       if (fresh) setSelected(fresh)
     }
   }, [campaigns])
+
+  // Auto-poll every 5 s while any campaign is running or scheduled
+  useEffect(() => {
+    const hasActive = campaigns.some((c) => c.status === 'running' || c.status === 'scheduled')
+    if (!hasActive) return
+    const interval = setInterval(async () => {
+      const data = await campaignsApi.list()
+      setCampaigns(data)
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [campaigns.map((c) => c.status).join(',')])
 
   const flash = (msg: string) => {
     setActionMsg(msg)
@@ -261,6 +176,7 @@ export default function CampaignsPage() {
       await campaignsApi.dispatch(id)
       updateOne({ id, status: 'running' })
       flash('Campaign dispatched — sending messages…')
+      // Poll until completed
       const poll = setInterval(async () => {
         const data = await campaignsApi.list()
         setCampaigns(data)
@@ -284,9 +200,6 @@ export default function CampaignsPage() {
 
   const filtered = campaigns.filter((c) => filter === 'all' || c.status === filter)
 
-  const liveCount = campaigns.filter((c) => c.status === 'running').length
-  const scheduledCount = campaigns.filter((c) => c.status === 'scheduled').length
-
   return (
     <div className="h-full flex flex-col bg-gray-50 overflow-hidden">
       <RegisterModalWrapper show={showRegister} onClose={() => setShowRegister(false)} />
@@ -296,19 +209,8 @@ export default function CampaignsPage() {
         <div className="flex items-center gap-3">
           <Megaphone className="w-5 h-5 text-primary-600" />
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-lg font-semibold text-gray-900">Campaigns</h1>
-              {liveRefresh && (
-                <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-teal-50 text-teal-600 border border-teal-200 font-medium">
-                  <RefreshCw className="w-2.5 h-2.5 animate-spin" /> Live
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-2 text-xs text-gray-400">
-              <span>{campaigns.length} total</span>
-              {liveCount > 0 && <span className="text-teal-600 font-medium">{liveCount} live</span>}
-              {scheduledCount > 0 && <span className="text-purple-600 font-medium">{scheduledCount} scheduled</span>}
-            </div>
+            <h1 className="text-lg font-semibold text-gray-900">Campaigns</h1>
+            <p className="text-xs text-gray-400">{campaigns.length} total · {campaigns.filter(c => c.status === 'running').length} live</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -419,7 +321,7 @@ export default function CampaignsPage() {
   )
 }
 
-// ─── Campaign Card ────────────────────────────────────────────────────────────
+// ─── Campaign Card (left list item) ──────────────────────────────────────────
 
 function CampaignCard({ campaign: c, active, onClick, onDelete }: {
   campaign: Campaign; active: boolean; onClick: () => void; onDelete: () => void
@@ -449,14 +351,10 @@ function CampaignCard({ campaign: c, active, onClick, onDelete }: {
             {st.label}
           </span>
           {c.status === 'running' && <Loader2 className="w-3 h-3 text-teal-500 animate-spin" />}
-          {c.sent_count > 0 && (
-            <span className="text-[10px] text-gray-400">
-              {c.delivered_count}/{c.sent_count} delivered
-            </span>
-          )}
         </div>
       </button>
 
+      {/* Delete button — appears on hover */}
       {canDelete && (
         <button
           onClick={(e) => { e.stopPropagation(); onDelete() }}
@@ -488,6 +386,7 @@ function RecipientPicker({ campaignId, busy, onApprove }: {
     setLoading(true)
     campaignsApi.recipients(campaignId).then((data) => {
       setRecipients(data)
+      // Pre-select all non-DNC contacts
       setSelected(new Set(data.filter((r) => !r.is_dnc).map((r) => r.email)))
       setLoading(false)
     }).catch(() => setLoading(false))
@@ -532,6 +431,7 @@ function RecipientPicker({ campaignId, busy, onApprove }: {
 
   return (
     <div className="mt-1">
+      {/* Search + select-all row */}
       <div className="flex items-center gap-2 mb-2">
         <div className="relative flex-1">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
@@ -550,6 +450,7 @@ function RecipientPicker({ campaignId, busy, onApprove }: {
         </button>
       </div>
 
+      {/* Count bar */}
       <div className="flex items-center gap-3 text-[11px] text-gray-400 mb-2">
         <span className="text-primary-600 font-medium">{selectedCount} selected</span>
         <span>·</span>
@@ -557,6 +458,7 @@ function RecipientPicker({ campaignId, busy, onApprove }: {
         {dncCount > 0 && <><span>·</span><span className="text-red-500">{dncCount} excluded (DNC)</span></>}
       </div>
 
+      {/* List */}
       <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100 max-h-64 overflow-y-auto">
         {filtered.map((r) => (
           <label
@@ -605,7 +507,7 @@ function RecipientPicker({ campaignId, busy, onApprove }: {
         className="mt-4 flex items-center gap-1.5 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-sm font-medium transition-colors"
       >
         {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-        Approve & lock {selectedCount} recipient{selectedCount !== 1 ? 's' : ''}
+        Approve &amp; lock {selectedCount} recipient{selectedCount !== 1 ? 's' : ''}
       </button>
     </div>
   )
@@ -625,6 +527,7 @@ function CampaignDetail({ campaign: c, busy, onSubmit, onApprove, onDispatch, on
 
   const st = STATUS[c.status as keyof typeof STATUS] ?? STATUS.draft
 
+  // Build default value for datetime-local: now + 1 hour in LOCAL time (IST on user's machine)
   const defaultScheduleValue = () => {
     const d = new Date(Date.now() + 60 * 60 * 1000)
     const pad = (n: number) => String(n).padStart(2, '0')
@@ -638,11 +541,13 @@ function CampaignDetail({ campaign: c, busy, onSubmit, onApprove, onDispatch, on
 
   const handleConfirmSchedule = () => {
     if (!scheduleInput) return
+    // datetime-local gives local time — convert to ISO with offset for backend
     const localDate = new Date(scheduleInput)
     onSchedule(c.id, localDate.toISOString())
     setShowScheduler(false)
   }
 
+  // Format scheduled_at in IST for display
   const scheduledAtIST = c.scheduled_at
     ? new Date(c.scheduled_at).toLocaleString('en-IN', {
         timeZone: 'Asia/Kolkata',
@@ -656,7 +561,8 @@ function CampaignDetail({ campaign: c, busy, onSubmit, onApprove, onDispatch, on
     : 0
 
   return (
-    <div className="p-6">
+    // ← Left-aligned: removed mx-auto, use full width with max-w and pl padding
+    <div className="p-8 max-w-3xl">
 
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
@@ -672,94 +578,56 @@ function CampaignDetail({ campaign: c, busy, onSubmit, onApprove, onDispatch, on
         </span>
       </div>
 
-      {/* 2-Column Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      {/* Target channels */}
+      <Section title="Target Channels">
+        <div className="flex flex-wrap gap-2">
+          {c.target_channels.map((ch) => (
+            <span key={ch} className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium ${CHANNEL_COLORS[ch] ?? 'bg-gray-100 text-gray-600'}`}>
+              {CHANNEL_ICONS[ch]}
+              {ch.charAt(0).toUpperCase() + ch.slice(1)}
+            </span>
+          ))}
+        </div>
+      </Section>
 
-        {/* Left column */}
-        <div className="space-y-5">
+      {/* Message template */}
+      <Section title="Message Template">
+        <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+          <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans leading-relaxed">
+            {c.content_template}
+          </pre>
+        </div>
+        <p className="text-[11px] text-gray-400 mt-1.5">
+          Use <code className="bg-gray-100 px-1 rounded text-xs">{"{{name}}"}</code> for the customer's first name
+        </p>
+      </Section>
 
-          {/* Target channels */}
-          <Section title="Target Channels">
-            <div className="flex flex-wrap gap-2">
-              {c.target_channels.map((ch) => (
-                <span key={ch} className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium ${CHANNEL_COLORS[ch] ?? 'bg-gray-100 text-gray-600'}`}>
-                  {CHANNEL_ICONS[ch]}
-                  {ch.charAt(0).toUpperCase() + ch.slice(1)}
-                </span>
-              ))}
-            </div>
-          </Section>
-
-          {/* Stats */}
-          {(c.status === 'completed' || c.status === 'running' || c.sent_count > 0) && (
-            <Section title="Live Delivery Stats">
-              <div className="grid grid-cols-3 gap-3">
-                <StatCard label="Sent" value={c.sent_count} icon={<Send className="w-4 h-4 text-blue-500" />} color="bg-blue-50" />
-                <StatCard label="Delivered" value={c.delivered_count} icon={<CheckCircle className="w-4 h-4 text-green-500" />} color="bg-green-50" />
-                <StatCard label="Rate" value={`${deliveryRate}%`} icon={<TrendingUp className="w-4 h-4 text-teal-500" />} color="bg-teal-50" />
+      {/* Stats — shown for completed / running */}
+      {(c.status === 'completed' || c.status === 'running' || c.sent_count > 0) && (
+        <Section title="Delivery Stats">
+          <div className="grid grid-cols-3 gap-3">
+            <StatCard label="Sent"          value={c.sent_count}       icon={<Send className="w-4 h-4 text-blue-500" />}    color="bg-blue-50"  />
+            <StatCard label="Delivered"     value={c.delivered_count}  icon={<CheckCircle className="w-4 h-4 text-green-500" />} color="bg-green-50" />
+            <StatCard label="Delivery Rate" value={`${deliveryRate}%`} icon={<AlertCircle className="w-4 h-4 text-teal-500" />}  color="bg-teal-50"  />
+          </div>
+          {c.status === 'running' && c.sent_count > 0 && (
+            <div className="mt-3">
+              <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                <span>Delivery progress</span>
+                <span className="font-medium text-teal-600">{deliveryRate}%</span>
               </div>
-              {c.status === 'running' && (
-                <div className="mt-3">
-                  <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
-                    <span>Delivery progress</span>
-                    <span className="font-semibold text-teal-600">{deliveryRate}%</span>
-                  </div>
-                  <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-teal-400 to-emerald-500 rounded-full transition-all duration-1000"
-                      style={{ width: `${deliveryRate}%` }}
-                    />
-                  </div>
-                </div>
-              )}
-            </Section>
+              <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-teal-400 to-emerald-500 rounded-full transition-all duration-700"
+                  style={{ width: `${deliveryRate}%` }}
+                />
+              </div>
+            </div>
           )}
+        </Section>
+      )}
 
-          {/* Campaign lifecycle */}
-          <Section title="Campaign Lifecycle">
-            <div className="flex items-center gap-1 text-xs text-gray-400 flex-wrap">
-              {['Draft', 'Pending Approval', 'Approved', 'Scheduled', 'Sending', 'Completed'].map((step, i, arr) => (
-                <span key={step} className="flex items-center gap-1">
-                  <span className={`px-2 py-0.5 rounded ${
-                    (c.status === 'draft' && step === 'Draft') ||
-                    (c.status === 'pending_approval' && step === 'Pending Approval') ||
-                    (c.status === 'approved' && step === 'Approved') ||
-                    (c.status === 'scheduled' && step === 'Scheduled') ||
-                    (c.status === 'running' && step === 'Sending') ||
-                    (c.status === 'completed' && step === 'Completed')
-                      ? 'bg-primary-100 text-primary-700 font-medium'
-                      : 'text-gray-400'
-                  }`}>{step}</span>
-                  {i < arr.length - 1 && <ChevronRight className="w-3 h-3 text-gray-300" />}
-                </span>
-              ))}
-            </div>
-          </Section>
-
-        </div>
-
-        {/* Right column — Message template + phone preview */}
-        <div className="space-y-4">
-          <Section title="Message Template">
-            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-              <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans leading-relaxed">
-                {c.content_template}
-              </pre>
-            </div>
-            <p className="text-[11px] text-gray-400 mt-1.5">
-              Use <code className="bg-gray-100 px-1 rounded text-xs">{"{{name}}"}</code> for the customer's first name
-            </p>
-          </Section>
-
-          {/* Live phone preview */}
-          <Section title="Message Preview">
-            <PhoneMockup template={c.content_template} channels={c.target_channels} />
-          </Section>
-        </div>
-
-      </div>
-
-      {/* Recipient picker */}
+      {/* Recipient picker — only shown during approval */}
       {c.status === 'pending_approval' && (
         <Section title="Recipients — Select who receives this campaign">
           <RecipientPicker
@@ -771,7 +639,7 @@ function CampaignDetail({ campaign: c, busy, onSubmit, onApprove, onDispatch, on
       )}
 
       {/* Action buttons */}
-      <div className="flex flex-wrap items-center gap-3 mt-6">
+      <div className="flex flex-wrap items-center gap-3 mt-8">
         {c.status === 'draft' && (
           <ActionButton
             label="Submit for Review"
@@ -801,6 +669,7 @@ function CampaignDetail({ campaign: c, busy, onSubmit, onApprove, onDispatch, on
           </>
         )}
 
+        {/* Inline scheduler form */}
         {showScheduler && c.status === 'approved' && (
           <div className="w-full mt-2 p-4 bg-purple-50 border border-purple-200 rounded-xl">
             <div className="flex items-center justify-between mb-3">
@@ -865,11 +734,33 @@ function CampaignDetail({ campaign: c, busy, onSubmit, onApprove, onDispatch, on
         )}
 
       </div>
+
+      {/* Lifecycle guide */}
+      <div className="mt-8 border-t border-gray-100 pt-6">
+        <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Campaign Lifecycle</p>
+        <div className="flex items-center gap-1 text-xs text-gray-400 flex-wrap">
+          {['Draft', 'Pending Approval', 'Approved', 'Scheduled', 'Sending', 'Completed'].map((step, i, arr) => (
+            <span key={step} className="flex items-center gap-1">
+              <span className={`px-2 py-0.5 rounded ${
+                (c.status === 'draft' && step === 'Draft') ||
+                (c.status === 'pending_approval' && step === 'Pending Approval') ||
+                (c.status === 'approved' && step === 'Approved') ||
+                (c.status === 'scheduled' && step === 'Scheduled') ||
+                (c.status === 'running' && step === 'Sending') ||
+                (c.status === 'completed' && step === 'Completed')
+                  ? 'bg-primary-100 text-primary-700 font-medium'
+                  : 'text-gray-400'
+              }`}>{step}</span>
+              {i < arr.length - 1 && <ChevronRight className="w-3 h-3 text-gray-300" />}
+            </span>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }
 
-// ─── New Campaign Form ────────────────────────────────────────────────────────
+// ─── New Campaign Form (right panel) ─────────────────────────────────────────
 
 function NewCampaignForm({ form, setForm, busy, onCreate, onCancel }: {
   form: typeof BLANK
@@ -890,99 +781,89 @@ function NewCampaignForm({ form, setForm, busy, onCreate, onCancel }: {
   }
 
   return (
-    <div className="p-6">
+    // ← Left-aligned: removed mx-auto, use full width with max-w and p-8
+    <div className="p-8 max-w-2xl">
       <h2 className="text-xl font-semibold text-gray-900 mb-6">New Campaign</h2>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="space-y-5">
 
-        {/* Left — Form fields */}
-        <div className="space-y-5">
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Campaign name</label>
-            <input
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              placeholder="e.g. Monsoon Savings Drive"
-              className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Target channels</label>
-            <div className="flex flex-wrap gap-2">
-              {ALL_CHANNELS.map((ch) => {
-                const active = form.target_channels.includes(ch)
-                return (
-                  <button
-                    key={ch}
-                    type="button"
-                    onClick={() => toggleChannel(ch)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                      active
-                        ? `${CHANNEL_COLORS[ch]} border-current shadow-sm`
-                        : 'border-gray-200 text-gray-500 hover:border-gray-300'
-                    }`}
-                  >
-                    {CHANNEL_ICONS[ch]}
-                    {ch.charAt(0).toUpperCase() + ch.slice(1)}
-                  </button>
-                )
-              })}
-            </div>
-            {form.target_channels.length === 0 && (
-              <p className="text-xs text-red-500 mt-1">Select at least one channel</p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Message template</label>
-            <textarea
-              value={form.content_template}
-              onChange={(e) => setForm({ ...form, content_template: e.target.value })}
-              placeholder={`Hello {{name}},\n\nWe have an exclusive offer just for you…\n\n— NeoBank Team`}
-              rows={7}
-              className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
-            />
-            <p className="text-[11px] text-gray-400 mt-1">
-              Use <code className="bg-gray-100 px-1 rounded">{"{{name}}"}</code> to personalise with the customer's first name
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3 pt-2">
-            <button
-              onClick={onCreate}
-              disabled={busy || !form.name.trim() || !form.content_template.trim() || form.target_channels.length === 0}
-              className="flex items-center gap-1.5 px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
-            >
-              {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-              Create Campaign
-            </button>
-            <button
-              onClick={onCancel}
-              className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-
-          <div className="mt-4 bg-blue-50 border border-blue-100 rounded-xl p-4 text-xs text-blue-700 space-y-1">
-            <p className="font-medium">How campaigns work</p>
-            <p>1. Create a draft and write your message template.</p>
-            <p>2. Submit for review — a manager approves it.</p>
-            <p>3. Once approved, dispatch sends to all eligible customers across the target channels.</p>
-            <p>4. Customers on the Do Not Contact list are automatically skipped.</p>
-          </div>
-        </div>
-
-        {/* Right — Live phone preview */}
         <div>
-          <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Live Preview</p>
-          <div className="bg-gray-50 border border-gray-200 rounded-2xl overflow-hidden">
-            <PhoneMockup template={form.content_template} channels={form.target_channels} />
-          </div>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">Campaign name</label>
+          <input
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            placeholder="e.g. Monsoon Savings Drive"
+            className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+          />
         </div>
 
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">Target channels</label>
+          <div className="flex flex-wrap gap-2">
+            {ALL_CHANNELS.map((ch) => {
+              const active = form.target_channels.includes(ch)
+              return (
+                <button
+                  key={ch}
+                  type="button"
+                  onClick={() => toggleChannel(ch)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                    active
+                      ? `${CHANNEL_COLORS[ch]} border-current`
+                      : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                  }`}
+                >
+                  {CHANNEL_ICONS[ch]}
+                  {ch.charAt(0).toUpperCase() + ch.slice(1)}
+                </button>
+              )
+            })}
+          </div>
+          {form.target_channels.length === 0 && (
+            <p className="text-xs text-red-500 mt-1">Select at least one channel</p>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">Message template</label>
+          <textarea
+            value={form.content_template}
+            onChange={(e) => setForm({ ...form, content_template: e.target.value })}
+            placeholder={`Hello {{name}},\n\nWe have an exclusive offer just for you…\n\n— NeoBank Team`}
+            rows={6}
+            className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+          />
+          <p className="text-[11px] text-gray-400 mt-1">
+            Use <code className="bg-gray-100 px-1 rounded">{"{{name}}"}</code> to personalise with the customer's first name
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3 pt-2">
+          <button
+            onClick={onCreate}
+            disabled={busy || !form.name.trim() || !form.content_template.trim() || form.target_channels.length === 0}
+            className="flex items-center gap-1.5 px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
+          >
+            {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+            Create Campaign
+          </button>
+          <button
+            onClick={onCancel}
+            className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+
+      </div>
+
+      {/* Info box */}
+      <div className="mt-8 bg-blue-50 border border-blue-100 rounded-xl p-4 text-xs text-blue-700 space-y-1">
+        <p className="font-medium">How campaigns work</p>
+        <p>1. Create a draft and write your message template.</p>
+        <p>2. Submit for review — a manager approves it.</p>
+        <p>3. Once approved, dispatch sends to all eligible customers across the target channels.</p>
+        <p>4. Customers on the Do Not Contact list are automatically skipped.</p>
       </div>
     </div>
   )
@@ -992,7 +873,7 @@ function NewCampaignForm({ form, setForm, busy, onCreate, onCancel }: {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="mb-4">
+    <div className="mb-6">
       <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">{title}</p>
       {children}
     </div>
