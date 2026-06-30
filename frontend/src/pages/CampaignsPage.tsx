@@ -7,13 +7,13 @@ import { RegisterModalWrapper } from '../components/RegisterModal'
 // ─── Status config ─────────────────────────────────────────────────────────
 
 const STATUS = {
-  draft:            { label: 'Draft',           color: 'bg-gray-100 text-gray-600 border-gray-200',     dot: 'bg-gray-400' },
-  pending_approval: { label: 'Pending Approval', color: 'bg-amber-50 text-amber-700 border-amber-200',   dot: 'bg-amber-400' },
-  approved:         { label: 'Approved',         color: 'bg-blue-50 text-blue-700 border-blue-200',      dot: 'bg-blue-500' },
-  running:          { label: 'Sending…',         color: 'bg-teal-50 text-teal-700 border-teal-200',      dot: 'bg-teal-500' },
-  completed:        { label: 'Completed',        color: 'bg-green-50 text-green-700 border-green-200',   dot: 'bg-green-500' },
-  cancelled:        { label: 'Cancelled',        color: 'bg-red-50 text-red-600 border-red-200',         dot: 'bg-red-400' },
-  scheduled:        { label: 'Scheduled',        color: 'bg-purple-50 text-purple-700 border-purple-200', dot: 'bg-purple-500' },
+  draft:            { label: 'Draft',           color: 'bg-gray-100 text-gray-600 border-gray-200',      dot: 'bg-gray-400'  },
+  pending_approval: { label: 'Pending Approval', color: 'bg-amber-50 text-amber-700 border-amber-200',    dot: 'bg-amber-400' },
+  approved:         { label: 'Approved',         color: 'bg-blue-50 text-blue-700 border-blue-200',       dot: 'bg-blue-500'  },
+  running:          { label: 'Sending…',         color: 'bg-teal-50 text-teal-700 border-teal-200',       dot: 'bg-teal-500'  },
+  completed:        { label: 'Completed',        color: 'bg-green-50 text-green-700 border-green-200',    dot: 'bg-green-500' },
+  cancelled:        { label: 'Cancelled',        color: 'bg-red-50 text-red-600 border-red-200',          dot: 'bg-red-400'   },
+  scheduled:        { label: 'Scheduled',        color: 'bg-purple-50 text-purple-700 border-purple-200', dot: 'bg-purple-500'},
 } as const
 
 const CHANNEL_ICONS: Record<string, React.ReactElement> = {
@@ -35,31 +35,29 @@ const CHANNEL_COLORS: Record<string, string> = {
 type Filter = 'all' | 'draft' | 'pending_approval' | 'approved' | 'scheduled' | 'running' | 'completed'
 
 const FILTERS: { key: Filter; label: string }[] = [
-  { key: 'all',             label: 'All'       },
-  { key: 'draft',           label: 'Draft'     },
-  { key: 'pending_approval',label: 'Pending'   },
-  { key: 'approved',        label: 'Approved'  },
-  { key: 'scheduled',       label: 'Scheduled' },
-  { key: 'running',         label: 'Live'      },
-  { key: 'completed',       label: 'Done'      },
+  { key: 'all',              label: 'All'       },
+  { key: 'draft',            label: 'Draft'     },
+  { key: 'pending_approval', label: 'Pending'   },
+  { key: 'approved',         label: 'Approved'  },
+  { key: 'scheduled',        label: 'Scheduled' },
+  { key: 'running',          label: 'Live'      },
+  { key: 'completed',        label: 'Done'      },
 ]
-
-// ─── New Campaign form state ────────────────────────────────────────────────
 
 const BLANK = { name: '', content_template: '', target_channels: ['whatsapp'] as string[] }
 
 // ─── Main Component ─────────────────────────────────────────────────────────
 
 export default function CampaignsPage() {
-  const [campaigns, setCampaigns]     = useState<Campaign[]>([])
-  const [selected, setSelected]       = useState<Campaign | null>(null)
-  const [filter, setFilter]           = useState<Filter>('all')
-  const [creating, setCreating]       = useState(false)
-  const [form, setForm]               = useState(BLANK)
-  const [busy, setBusy]               = useState(false)
-  const [actionMsg, setActionMsg]     = useState<string | null>(null)
+  const [campaigns, setCampaigns]       = useState<Campaign[]>([])
+  const [selected, setSelected]         = useState<Campaign | null>(null)
+  const [filter, setFilter]             = useState<Filter>('all')
+  const [creating, setCreating]         = useState(false)
+  const [form, setForm]                 = useState(BLANK)
+  const [busy, setBusy]                 = useState(false)
+  const [actionMsg, setActionMsg]       = useState<string | null>(null)
   const [showRegister, setShowRegister] = useState(false)
-  const [panelWidth, setPanelWidth]   = useState(300)
+  const [panelWidth, setPanelWidth]     = useState(300)
   const dragging = useRef(false)
   const startX   = useRef(0)
   const startW   = useRef(0)
@@ -68,7 +66,7 @@ export default function CampaignsPage() {
     dragging.current = true
     startX.current   = e.clientX
     startW.current   = panelWidth
-    document.body.style.cursor    = 'col-resize'
+    document.body.style.cursor     = 'col-resize'
     document.body.style.userSelect = 'none'
   }, [panelWidth])
 
@@ -80,7 +78,7 @@ export default function CampaignsPage() {
     }
     const onUp = () => {
       dragging.current = false
-      document.body.style.cursor    = ''
+      document.body.style.cursor     = ''
       document.body.style.userSelect = ''
     }
     window.addEventListener('mousemove', onMove)
@@ -102,6 +100,17 @@ export default function CampaignsPage() {
       if (fresh) setSelected(fresh)
     }
   }, [campaigns])
+
+  // Auto-poll every 5 s while any campaign is running or scheduled
+  useEffect(() => {
+    const hasActive = campaigns.some((c) => c.status === 'running' || c.status === 'scheduled')
+    if (!hasActive) return
+    const interval = setInterval(async () => {
+      const data = await campaignsApi.list()
+      setCampaigns(data)
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [campaigns.map((c) => c.status).join(',')])
 
   const flash = (msg: string) => {
     setActionMsg(msg)
@@ -312,7 +321,7 @@ export default function CampaignsPage() {
   )
 }
 
-// ─── Campaign Card (left list item) ─────────────────────────────────────────
+// ─── Campaign Card (left list item) ──────────────────────────────────────────
 
 function CampaignCard({ campaign: c, active, onClick, onDelete }: {
   campaign: Campaign; active: boolean; onClick: () => void; onDelete: () => void
@@ -359,7 +368,7 @@ function CampaignCard({ campaign: c, active, onClick, onDelete }: {
   )
 }
 
-// ─── Campaign Detail Panel ───────────────────────────────────────────────────
+// ─── Campaign Detail Panel ────────────────────────────────────────────────────
 
 type Recipient = { email: string; name: string; channels: string[]; is_dnc: boolean }
 
@@ -498,7 +507,7 @@ function RecipientPicker({ campaignId, busy, onApprove }: {
         className="mt-4 flex items-center gap-1.5 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-sm font-medium transition-colors"
       >
         {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-        Approve & lock {selectedCount} recipient{selectedCount !== 1 ? 's' : ''}
+        Approve &amp; lock {selectedCount} recipient{selectedCount !== 1 ? 's' : ''}
       </button>
     </div>
   )
@@ -552,7 +561,8 @@ function CampaignDetail({ campaign: c, busy, onSubmit, onApprove, onDispatch, on
     : 0
 
   return (
-    <div className="max-w-2xl mx-auto p-8">
+    // ← Left-aligned: removed mx-auto, use full width with max-w and pl padding
+    <div className="p-8 max-w-3xl">
 
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
@@ -596,10 +606,24 @@ function CampaignDetail({ campaign: c, busy, onSubmit, onApprove, onDispatch, on
       {(c.status === 'completed' || c.status === 'running' || c.sent_count > 0) && (
         <Section title="Delivery Stats">
           <div className="grid grid-cols-3 gap-3">
-            <StatCard label="Sent" value={c.sent_count} icon={<Send className="w-4 h-4 text-blue-500" />} color="bg-blue-50" />
-            <StatCard label="Delivered" value={c.delivered_count} icon={<CheckCircle className="w-4 h-4 text-green-500" />} color="bg-green-50" />
-            <StatCard label="Delivery Rate" value={`${deliveryRate}%`} icon={<AlertCircle className="w-4 h-4 text-teal-500" />} color="bg-teal-50" />
+            <StatCard label="Sent"          value={c.sent_count}       icon={<Send className="w-4 h-4 text-blue-500" />}    color="bg-blue-50"  />
+            <StatCard label="Delivered"     value={c.delivered_count}  icon={<CheckCircle className="w-4 h-4 text-green-500" />} color="bg-green-50" />
+            <StatCard label="Delivery Rate" value={`${deliveryRate}%`} icon={<AlertCircle className="w-4 h-4 text-teal-500" />}  color="bg-teal-50"  />
           </div>
+          {c.status === 'running' && c.sent_count > 0 && (
+            <div className="mt-3">
+              <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                <span>Delivery progress</span>
+                <span className="font-medium text-teal-600">{deliveryRate}%</span>
+              </div>
+              <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-teal-400 to-emerald-500 rounded-full transition-all duration-700"
+                  style={{ width: `${deliveryRate}%` }}
+                />
+              </div>
+            </div>
+          )}
         </Section>
       )}
 
@@ -736,7 +760,7 @@ function CampaignDetail({ campaign: c, busy, onSubmit, onApprove, onDispatch, on
   )
 }
 
-// ─── New Campaign Form (right panel) ────────────────────────────────────────
+// ─── New Campaign Form (right panel) ─────────────────────────────────────────
 
 function NewCampaignForm({ form, setForm, busy, onCreate, onCancel }: {
   form: typeof BLANK
@@ -757,7 +781,8 @@ function NewCampaignForm({ form, setForm, busy, onCreate, onCancel }: {
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-8">
+    // ← Left-aligned: removed mx-auto, use full width with max-w and p-8
+    <div className="p-8 max-w-2xl">
       <h2 className="text-xl font-semibold text-gray-900 mb-6">New Campaign</h2>
 
       <div className="space-y-5">
@@ -844,7 +869,7 @@ function NewCampaignForm({ form, setForm, busy, onCreate, onCancel }: {
   )
 }
 
-// ─── Small helpers ───────────────────────────────────────────────────────────
+// ─── Small helpers ────────────────────────────────────────────────────────────
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Mail, Send, Phone, Monitor, MessageSquare, XCircle, Trash2 } from 'lucide-react'
+import { Mail, Send, Phone, Monitor, MessageSquare, XCircle, Trash2, Crown } from 'lucide-react'
 import { useConversationStore } from '../../stores/conversationStore'
 import { conversations as convApi, messages as msgApi } from '../../services/api'
 import type { Conversation, Message } from '../../types'
@@ -112,9 +112,25 @@ export default function ConversationThread({ conversation, onClose }: Props) {
   return (
     <div className="h-full flex flex-col bg-gray-50 overflow-hidden min-h-0">
       {/* Header */}
-      <div className="h-14 px-4 flex items-center gap-3 bg-white border-b border-gray-200 flex-shrink-0">
+      <div className="h-auto min-h-[56px] px-4 py-2 flex items-center gap-3 bg-white border-b border-gray-200 flex-shrink-0">
         <div className="flex-1">
-          <p className="font-semibold text-gray-900 text-sm">{conversation.customer_name ?? 'Customer'}</p>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <p className="font-semibold text-gray-900 text-sm">{conversation.customer_name ?? 'Customer'}</p>
+            {conversation.customer_is_priority && (
+              <span
+                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold"
+                style={{
+                  background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                  color: 'white',
+                  boxShadow: '0 0 6px rgba(245,158,11,0.35)',
+                }}
+                title="Privileged Customer"
+              >
+                <Crown className="w-2.5 h-2.5" style={{ fill: 'white' }} />
+                {conversation.customer_priority_tag ?? 'VIP'}
+              </span>
+            )}
+          </div>
           <p className="text-xs text-gray-500 capitalize">{conversation.status}</p>
         </div>
         <div className="flex items-center gap-2">

@@ -15,6 +15,9 @@ export interface Customer {
   phone?: string
   metadata_json?: string
   created_at: string
+  is_priority?: boolean
+  priority_tag?: string
+  preferences?: string
 }
 
 export interface ChannelIdentifier {
@@ -61,6 +64,9 @@ export interface Conversation {
   one_liner?: string
   sentiment?: string
   linked_account_number?: string
+  customer_is_priority?: boolean
+  customer_priority_tag?: string
+  customer_preferences?: string
 }
 
 export interface Transaction {

@@ -46,13 +46,17 @@ export const messages = {
 }
 
 export const customers = {
-  list: (search?: string) =>
-    client.get<Customer[]>('/customers', { params: search ? { search } : {} }).then((r) => r.data),
+  list: (params?: Record<string, any>) =>
+    client.get<Customer[]>('/customers', { params }).then((r) => r.data),
   get: (id: string) => client.get<Customer>(`/customers/${id}`).then((r) => r.data),
   transactions: (id: string) =>
     client.get<Transaction[]>(`/customers/${id}/transactions`).then((r) => r.data),
   identifiers: (id: string) =>
     client.get(`/customers/${id}/identifiers`).then((r) => r.data),
+  togglePriority: (id: string) =>
+    client.post(`/customers/${id}/toggle-priority`).then((r) => r.data),
+  updatePrivilege: (id: string, data: { is_priority: boolean; priority_tag?: string | null; preferences?: string | null }) =>
+    client.post(`/customers/${id}/privilege`, data).then((r) => r.data),
 }
 
 export const ai = {
