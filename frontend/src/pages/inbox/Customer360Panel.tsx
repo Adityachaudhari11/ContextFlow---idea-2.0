@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Mail, Phone, Send, MessageSquare, Monitor, Link, CreditCard, Crown, Star, Zap, ChevronDown, ChevronUp, Check, Edit3, X, Building } from 'lucide-react'
+import { Mail, Phone, Send, MessageSquare, Monitor, Link, CreditCard, Crown, Star, Zap, Check, Edit3, X, Building } from 'lucide-react'
 import { useConversationStore } from '../../stores/conversationStore'
 import { customers, ai, documents, accounts } from '../../services/api'
 import type { Conversation, Customer, Transaction, AccountTransaction, BankAccount } from '../../types'
@@ -27,7 +27,7 @@ const sentimentColors: Record<string, string> = {
   frustrated: 'bg-orange-100 text-orange-700',
 }
 
-const AMOUNT_RE = /(?:₹|rs\.?)\s*(\d+(?:,\d+)*(?:\.\d{1,2})?)/gi
+const AMOUNT_RE = /(?:â‚¹|rs\.?)\s*(\d+(?:,\d+)*(?:\.\d{1,2})?)/gi
 const PLAIN_NUM_RE = /\b(\d{2,6})\b/g
 const DATE_RE = /\b(\d{1,2})[/-](\d{1,2})\b|\b(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\b|\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\s+(\d{1,2})\b/gi
 
@@ -41,7 +41,7 @@ function parseAmountsFromMessages(messages: { content: string }[]): number[] {
   for (const msg of messages) {
     const text = msg.content
 
-    // ₹ / rs amounts
+    // â‚¹ / rs amounts
     let m: RegExpExecArray | null
     AMOUNT_RE.lastIndex = 0
     while ((m = AMOUNT_RE.exec(text)) !== null) {
@@ -88,7 +88,7 @@ function isRelevantTransaction(
   amounts: number[],
   parsedDates: ParsedDate[],
 ): boolean {
-  // Amount match (±10 tolerance)
+  // Amount match (Â±10 tolerance)
   const txAmt = tx.amount
   if (amounts.some((a) => Math.abs(a - txAmt) <= 10)) return true
 
@@ -124,10 +124,10 @@ export default function Customer360Panel({ conversation }: Props) {
   const updateCustomerPriority = useConversationStore((s) => s.updateCustomerPriority)
 
   const PRESET_TAGS = [
-    { label: '👑 VIP', value: 'VIP' },
-    { label: '⭐ Preferred', value: 'Preferred' },
-    { label: '🔥 High Priority', value: 'High Priority' },
-    { label: '🏢 Enterprise', value: 'Enterprise' },
+    { label: 'ðŸ‘‘ VIP', value: 'VIP' },
+    { label: 'â­ Preferred', value: 'Preferred' },
+    { label: 'ðŸ”¥ High Priority', value: 'High Priority' },
+    { label: 'ðŸ¢ Enterprise', value: 'Enterprise' },
   ]
 
   const handleSavePrivilege = async (isPriority: boolean) => {
@@ -248,7 +248,7 @@ export default function Customer360Panel({ conversation }: Props) {
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <h3 className="font-semibold text-gray-900">{customer?.display_name ?? '…'}</h3>
+              <h3 className="font-semibold text-gray-900">{customer?.display_name ?? 'â€¦'}</h3>
               {customer?.is_priority && (
                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-amber-100 border border-amber-300 text-amber-800 text-[10px] font-bold shadow-sm" title="Priority Customer">
                   <Crown className="w-3 h-3 text-amber-600 fill-amber-500" />
@@ -345,7 +345,7 @@ export default function Customer360Panel({ conversation }: Props) {
                     type="text"
                     value={editTag}
                     onChange={(e) => setEditTag(e.target.value)}
-                    placeholder="Or type a custom tag…"
+                    placeholder="Or type a custom tagâ€¦"
                     className="mt-2 w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
                   />
                 </div>
@@ -356,7 +356,7 @@ export default function Customer360Panel({ conversation }: Props) {
                   <textarea
                     value={editPreferences}
                     onChange={(e) => setEditPreferences(e.target.value)}
-                    placeholder="e.g. Prefers WhatsApp, callback after 5pm…"
+                    placeholder="e.g. Prefers WhatsApp, callback after 5pmâ€¦"
                     rows={2}
                     className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none bg-white"
                   />
@@ -396,7 +396,7 @@ export default function Customer360Panel({ conversation }: Props) {
               <span className="text-xs text-purple-600 ml-1.5 capitalize">{bankAccount.account_type}</span>
             </div>
             <span className={`text-xs font-semibold ${bankAccount.balance < 0 ? 'text-red-600' : 'text-purple-700'}`}>
-              ₹{Math.abs(bankAccount.balance).toLocaleString('en-IN')}{bankAccount.balance < 0 ? ' (−)' : ''}
+              â‚¹{Math.abs(bankAccount.balance).toLocaleString('en-IN')}{bankAccount.balance < 0 ? ' (âˆ’)' : ''}
             </span>
           </div>
         )}
@@ -429,7 +429,7 @@ export default function Customer360Panel({ conversation }: Props) {
             disabled={loadingRegen}
             className="text-xs text-primary-600 hover:text-primary-800 disabled:opacity-50"
           >
-            {loadingRegen ? 'Generating…' : 'Regenerate'}
+            {loadingRegen ? 'Generatingâ€¦' : 'Regenerate'}
           </button>
         </div>
 
@@ -447,7 +447,7 @@ export default function Customer360Panel({ conversation }: Props) {
                 <ul className="space-y-0.5">
                   {summary.key_issues.map((issue, i) => (
                     <li key={i} className="text-xs text-gray-600 flex gap-1">
-                      <span className="text-primary-500 mt-0.5">•</span>
+                      <span className="text-primary-500 mt-0.5">â€¢</span>
                       {issue}
                     </li>
                   ))}
@@ -462,7 +462,7 @@ export default function Customer360Panel({ conversation }: Props) {
             )}
           </div>
         ) : (
-          <p className="text-xs text-gray-400 italic">Waiting for summary…</p>
+          <p className="text-xs text-gray-400 italic">Waiting for summaryâ€¦</p>
         )}
       </div>
 
@@ -499,10 +499,10 @@ export default function Customer360Panel({ conversation }: Props) {
                 >
                   <div>
                     <p className="text-xs font-medium text-gray-800">{tx.merchant_name}</p>
-                    <p className="text-xs text-gray-400">{tx.merchant_category} · {tx.transaction_date}</p>
+                    <p className="text-xs text-gray-400">{tx.merchant_category} Â· {tx.transaction_date}</p>
                   </div>
                   <span className={`text-xs font-semibold ${tx.transaction_type === 'credit' ? 'text-green-600' : 'text-gray-700'}`}>
-                    {tx.transaction_type === 'credit' ? '+' : '−'}₹{Number(tx.amount).toLocaleString('en-IN')}
+                    {tx.transaction_type === 'credit' ? '+' : 'âˆ’'}â‚¹{Number(tx.amount).toLocaleString('en-IN')}
                   </span>
                 </div>
               )
@@ -510,7 +510,7 @@ export default function Customer360Panel({ conversation }: Props) {
 
             {!showAllTxs && hasRelevanceSplit && otherTxs.length > 3 && (
               <p className="text-[10px] text-gray-400 mt-1">
-                +{otherTxs.length - 3} more — <button onClick={() => setShowAllTxs(true)} className="text-purple-600 hover:underline">show all</button>
+                +{otherTxs.length - 3} more â€” <button onClick={() => setShowAllTxs(true)} className="text-purple-600 hover:underline">show all</button>
               </p>
             )}
           </>
@@ -521,9 +521,9 @@ export default function Customer360Panel({ conversation }: Props) {
               <div key={tx.id} className="flex items-center justify-between py-1.5">
                 <div>
                   <p className="text-xs font-medium text-gray-800">{tx.merchant_name}</p>
-                  <p className="text-xs text-gray-400">{tx.merchant_category} · {tx.transaction_date}</p>
+                  <p className="text-xs text-gray-400">{tx.merchant_category} Â· {tx.transaction_date}</p>
                 </div>
-                <span className="text-xs font-semibold text-gray-700">₹{Number(tx.amount).toLocaleString('en-IN')}</span>
+                <span className="text-xs font-semibold text-gray-700">â‚¹{Number(tx.amount).toLocaleString('en-IN')}</span>
               </div>
             ))}
             {transactions.length === 0 && <p className="text-xs text-gray-400">No transactions</p>}
@@ -547,7 +547,7 @@ export default function Customer360Panel({ conversation }: Props) {
             </svg>
             <div className="flex-1 min-w-0">
               <p className="text-xs text-gray-700 truncate">{doc.filename}</p>
-              <p className="text-xs text-gray-400">{doc.processed ? `${doc.chunk_count} chunks` : 'Processing…'}</p>
+              <p className="text-xs text-gray-400">{doc.processed ? `${doc.chunk_count} chunks` : 'Processingâ€¦'}</p>
             </div>
           </div>
         ))}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Shield, Mail, Trash2, AlertTriangle, Info, Crown, Users, Plus, Search } from 'lucide-react'
+import { Shield, Mail, Trash2, AlertTriangle, Info, Crown, Plus, Search } from 'lucide-react'
 import { compliance, customers } from '../services/api'
 import type { DNCEntry, Customer } from '../types'
 
@@ -142,7 +142,7 @@ export default function CompliancePage() {
                   disabled={adding}
                   className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
                 >
-                  {adding ? 'Adding…' : 'Block Email'}
+                  {adding ? 'Addingâ€¦' : 'Block Email'}
                 </button>
               </div>
               {error && (
@@ -210,7 +210,7 @@ export default function CompliancePage() {
                   type="text"
                   value={custSearch}
                   onChange={(e) => handleCustSearch(e.target.value)}
-                  placeholder="Search customer by name or email…"
+                  placeholder="Search customer by name or emailâ€¦"
                   className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent bg-gray-50 focus:bg-white transition-colors"
                 />
                 
@@ -248,7 +248,7 @@ export default function CompliancePage() {
               </div>
 
               {loadingCustomers ? (
-                <div className="px-4 py-8 text-center text-gray-400 text-sm">Loading VIP list…</div>
+                <div className="px-4 py-8 text-center text-gray-400 text-sm">Loading VIP listâ€¦</div>
               ) : priorityCustomers.length === 0 ? (
                 <div className="px-4 py-8 text-center text-gray-400 text-sm">No customers currently flagged as VIP</div>
               ) : (
