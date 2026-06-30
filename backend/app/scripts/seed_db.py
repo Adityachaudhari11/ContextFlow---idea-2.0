@@ -402,11 +402,15 @@ async def seed():
         print("Seeding customers...")
         customer_map: dict[str, Customer] = {}
         for name, email, phone in CUSTOMERS:
+            segment = random.choice(["retail", "premium", "business"])
             customer = Customer(
                 display_name=name,
                 email=email,
                 phone=phone,
-                metadata_json=json.dumps({"segment": random.choice(["retail", "premium", "business"])}),
+                metadata_json=json.dumps({
+                    "segment": segment,
+                    "is_priority": segment in ("premium", "business")
+                }),
             )
             db.add(customer)
             await db.flush()

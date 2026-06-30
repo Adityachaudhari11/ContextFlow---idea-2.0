@@ -1,4 +1,4 @@
-﻿import json
+import json
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
@@ -36,6 +36,9 @@ class ConversationOut(BaseModel):
     sentiment: Optional[str] = None
     unread_count: int = 0
     linked_account_number: Optional[str] = None
+    customer_is_priority: bool = False
+    customer_priority_tag: Optional[str] = None
+    customer_preferences: Optional[str] = None
 
 
 class MessageOut(BaseModel):
@@ -74,6 +77,18 @@ async def list_conversations(
         )
         summary = sum_result.scalars().first()
 
+        customer_is_priority = False
+        customer_priority_tag = None
+        customer_preferences = None
+        if customer and customer.metadata_json:
+            try:
+                meta = json.loads(customer.metadata_json)
+                customer_is_priority = meta.get("is_priority", False)
+                customer_priority_tag = meta.get("priority_tag")
+                customer_preferences = meta.get("preferences")
+            except Exception:
+                pass
+
         out.append(ConversationOut(
             id=conv.id,
             customer_id=conv.customer_id,
@@ -87,6 +102,9 @@ async def list_conversations(
             one_liner=summary.one_liner if summary else None,
             sentiment=summary.sentiment.value if summary else None,
             linked_account_number=conv.linked_account_number,
+            customer_is_priority=customer_is_priority,
+            customer_priority_tag=customer_priority_tag,
+            customer_preferences=customer_preferences,
         ))
     return out
 
@@ -107,6 +125,18 @@ async def get_conversation(conv_id: str, db: AsyncSession = Depends(get_db),):
     )
     summary = sum_result.scalars().first()
 
+    customer_is_priority = False
+    customer_priority_tag = None
+    customer_preferences = None
+    if customer and customer.metadata_json:
+        try:
+            meta = json.loads(customer.metadata_json)
+            customer_is_priority = meta.get("is_priority", False)
+            customer_priority_tag = meta.get("priority_tag")
+            customer_preferences = meta.get("preferences")
+        except Exception:
+            pass
+
     return ConversationOut(
         id=conv.id, customer_id=conv.customer_id,
         customer_name=customer.display_name if customer else "Unknown",
@@ -117,6 +147,9 @@ async def get_conversation(conv_id: str, db: AsyncSession = Depends(get_db),):
         one_liner=summary.one_liner if summary else None,
         sentiment=summary.sentiment.value if summary else None,
         linked_account_number=conv.linked_account_number,
+        customer_is_priority=customer_is_priority,
+        customer_priority_tag=customer_priority_tag,
+        customer_preferences=customer_preferences,
     )
 
 

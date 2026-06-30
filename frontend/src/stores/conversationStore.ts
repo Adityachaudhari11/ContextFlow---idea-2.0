@@ -12,6 +12,7 @@ interface ConversationState {
   appendMessage: (id: string, msg: Message) => void
   setSummary: (id: string, summary: AISummary) => void
   updateConversationOneLine: (id: string, one_liner: string, sentiment: string) => void
+  updateCustomerPriority: (customerId: string, isPriority: boolean, priorityTag?: string | null, preferences?: string | null) => void
 }
 
 export const useConversationStore = create<ConversationState>((set) => ({
@@ -34,6 +35,19 @@ export const useConversationStore = create<ConversationState>((set) => ({
     set((s) => ({
       conversations: s.conversations.map((c) =>
         c.id === id ? { ...c, one_liner, sentiment } : c
+      ),
+    })),
+  updateCustomerPriority: (customerId, isPriority, priorityTag, preferences) =>
+    set((s) => ({
+      conversations: s.conversations.map((c) =>
+        c.customer_id === customerId
+          ? {
+              ...c,
+              customer_is_priority: isPriority,
+              customer_priority_tag: priorityTag !== undefined ? priorityTag : c.customer_priority_tag,
+              customer_preferences: preferences !== undefined ? preferences : c.customer_preferences,
+            }
+          : c
       ),
     })),
 }))

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, MessageSquare, Mail, Phone, Send, Clock, Inbox, History, SlidersHorizontal, X } from 'lucide-react'
+import { Search, MessageSquare, Mail, Phone, Send, Clock, Inbox, History, SlidersHorizontal, X, Crown } from 'lucide-react'
 import { useConversationStore } from '../../stores/conversationStore'
 import type { Conversation } from '../../types'
 
@@ -242,9 +242,25 @@ export default function ConversationList({
                   <div className="flex-1 min-w-0">
                     {/* Top row: name + time */}
                     <div className="flex items-start justify-between gap-1 mb-1">
-                      <span className="text-sm font-semibold text-gray-900 truncate leading-tight">
-                        {conv.customer_name ?? 'Customer'}
-                      </span>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-sm font-semibold text-gray-900 truncate leading-tight">
+                          {conv.customer_name ?? 'Customer'}
+                        </span>
+                        {conv.customer_is_priority && (
+                          <span
+                            className="flex-shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold shadow-sm animate-pulse"
+                            style={{
+                              background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                              color: 'white',
+                              boxShadow: '0 0 8px rgba(245,158,11,0.4)',
+                            }}
+                            title="Privileged Customer"
+                          >
+                            <Crown className="w-2.5 h-2.5" style={{ fill: 'white' }} />
+                            {conv.customer_priority_tag ?? 'VIP'}
+                          </span>
+                        )}
+                      </div>
                       <div className="flex items-center gap-1 flex-shrink-0">
                         <Clock className="w-3 h-3 text-gray-300" />
                         <span className="text-[10px] text-gray-400 whitespace-nowrap">{timeAgo(conv.last_message_at)}</span>
