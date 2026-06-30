@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, MessageSquare, Mail, Phone, Send, Clock, Inbox, History, SlidersHorizontal, X, Trash2, Crown } from 'lucide-react'
+import { Search, MessageSquare, Mail, Phone, Send, Clock, Inbox, History, SlidersHorizontal, X, Crown } from 'lucide-react'
 import { useConversationStore } from '../../stores/conversationStore'
 import type { Conversation } from '../../types'
 
@@ -68,7 +68,6 @@ function avatarColor(name?: string) {
 interface Props {
   conversations: Conversation[]
   onSelect: (id: string) => void
-  onDelete: (id: string) => void
   tab: 'active' | 'history'
   setTab: (t: 'active' | 'history') => void
   search: string
@@ -80,7 +79,7 @@ interface Props {
 }
 
 export default function ConversationList({
-  conversations, onSelect, onDelete, tab, setTab, search, setSearch,
+  conversations, onSelect, tab, setTab, search, setSearch,
   activeCount, historyCount, statusFilter, setStatusFilter,
 }: Props) {
   const activeId = useConversationStore((s) => s.activeId)
@@ -268,19 +267,6 @@ export default function ConversationList({
                       </div>
                     </div>
                     
-                    {/* Delete button positioned absolute top right of the whole item (or float right) */}
-                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onDelete(conv.id)
-                        }}
-                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
-                        title="Delete conversation"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
 
                     {/* Topic */}
                     {conv.topic && (

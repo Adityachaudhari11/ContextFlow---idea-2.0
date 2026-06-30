@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { Mail, X, CreditCard, Landmark, Wallet, Banknote, ArrowUpRight, ArrowDownLeft, Copy, Check, Shield, Crown, Search, Trash2, Plus, AlertTriangle } from 'lucide-react'
+import { Mail, X, CreditCard, Landmark, Wallet, Banknote, ArrowUpRight, ArrowDownLeft, Copy, Check, Shield, Crown, Search, Plus, AlertTriangle, Trash2 } from 'lucide-react'
 import { useConversationStore } from '../../stores/conversationStore'
 import { conversations as convApi, compliance, customers } from '../../services/api'
 import type { Conversation, Customer, DNCEntry } from '../../types'
@@ -529,7 +529,7 @@ export default function InboxPage() {
         )
     )
 
-    const interval = setInterval(loadActive, 15000)
+    const interval = setInterval(loadActive, 3000)
     return () => clearInterval(interval)
   }, [])
 
@@ -619,18 +619,6 @@ export default function InboxPage() {
           <ConversationList
             conversations={filtered}
             onSelect={setActive}
-            onDelete={async (id) => {
-              // Optimistically remove from UI
-              useConversationStore.getState().removeConversation(id)
-              // Remove from the history local state too if it's there
-              setHistory(h => h.filter(c => c.id !== id))
-              // Call API
-              try {
-                await convApi.delete(id)
-              } catch (e) {
-                console.error('Failed to delete conversation:', e)
-              }
-            }}
             tab={tab}
             setTab={handleTabChange}
             search={search}
