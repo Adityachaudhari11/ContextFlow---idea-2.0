@@ -7,15 +7,6 @@ interface ConversationState {
   messages: Record<string, Message[]>
   summaries: Record<string, AISummary>
   setConversations: (list: Conversation[]) => void
-import { create } from 'zustand'
-import type { Conversation, Message, AISummary } from '../types'
-
-interface ConversationState {
-  conversations: Conversation[]
-  activeId: string | null
-  messages: Record<string, Message[]>
-  summaries: Record<string, AISummary>
-  setConversations: (list: Conversation[]) => void
   setActive: (id: string) => void
   setMessages: (id: string, msgs: Message[]) => void
   appendMessage: (id: string, msg: Message) => void
