@@ -12,6 +12,7 @@ interface ConversationState {
   appendMessage: (id: string, msg: Message) => void
   setSummary: (id: string, summary: AISummary) => void
   updateConversationOneLine: (id: string, one_liner: string, sentiment: string) => void
+  removeConversation: (id: string) => void
 }
 
 export const useConversationStore = create<ConversationState>((set) => ({
@@ -35,5 +36,10 @@ export const useConversationStore = create<ConversationState>((set) => ({
       conversations: s.conversations.map((c) =>
         c.id === id ? { ...c, one_liner, sentiment } : c
       ),
+    })),
+  removeConversation: (id) =>
+    set((s) => ({
+      conversations: s.conversations.filter((c) => c.id !== id),
+      activeId: s.activeId === id ? null : s.activeId,
     })),
 }))

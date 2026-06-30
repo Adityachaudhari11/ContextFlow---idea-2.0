@@ -349,6 +349,18 @@ export default function InboxPage() {
           <ConversationList
             conversations={filtered}
             onSelect={setActive}
+            onDelete={async (id) => {
+              // Optimistically remove from UI
+              useConversationStore.getState().removeConversation(id)
+              // Remove from the history local state too if it's there
+              setHistory(h => h.filter(c => c.id !== id))
+              // Call API
+              try {
+                await convApi.delete(id)
+              } catch (e) {
+                console.error('Failed to delete conversation:', e)
+              }
+            }}
             tab={tab}
             setTab={handleTabChange}
             search={search}

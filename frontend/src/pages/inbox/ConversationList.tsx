@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, MessageSquare, Mail, Phone, Send, Clock, Inbox, History, SlidersHorizontal, X } from 'lucide-react'
+import { Search, MessageSquare, Mail, Phone, Send, Clock, Inbox, History, SlidersHorizontal, X, Trash2 } from 'lucide-react'
 import { useConversationStore } from '../../stores/conversationStore'
 import type { Conversation } from '../../types'
 
@@ -68,6 +68,7 @@ function avatarColor(name?: string) {
 interface Props {
   conversations: Conversation[]
   onSelect: (id: string) => void
+  onDelete: (id: string) => void
   tab: 'active' | 'history'
   setTab: (t: 'active' | 'history') => void
   search: string
@@ -79,7 +80,7 @@ interface Props {
 }
 
 export default function ConversationList({
-  conversations, onSelect, tab, setTab, search, setSearch,
+  conversations, onSelect, onDelete, tab, setTab, search, setSearch,
   activeCount, historyCount, statusFilter, setStatusFilter,
 }: Props) {
   const activeId = useConversationStore((s) => s.activeId)
@@ -227,7 +228,7 @@ export default function ConversationList({
                 exit={{ opacity: 0, scale: 0.97 }}
                 transition={{ delay: idx * 0.025, duration: 0.2 }}
                 onClick={() => onSelect(conv.id)}
-                className={`w-full text-left rounded-xl border p-3 transition-all duration-150 ${
+                className={`relative group w-full text-left rounded-xl border p-3 transition-all duration-150 ${
                   isSelected
                     ? 'bg-teal-50 border-teal-300 shadow-sm ring-1 ring-teal-200'
                     : 'bg-white border-gray-100 hover:border-teal-200 hover:shadow-sm hover:bg-teal-50/30'
@@ -249,6 +250,20 @@ export default function ConversationList({
                         <Clock className="w-3 h-3 text-gray-300" />
                         <span className="text-[10px] text-gray-400 whitespace-nowrap">{timeAgo(conv.last_message_at)}</span>
                       </div>
+                    </div>
+                    
+                    {/* Delete button positioned absolute top right of the whole item (or float right) */}
+                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onDelete(conv.id)
+                        }}
+                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
+                        title="Delete conversation"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
 
                     {/* Topic */}
