@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Mail, Send, Phone, Monitor, MessageSquare, XCircle, Trash2, Crown } from 'lucide-react'
 import { useConversationStore } from '../../stores/conversationStore'
-import { conversations as convApi, messages as msgApi } from '../../services/api'
+import { conversations as convApi, messages as msgApi, customers as custApi } from '../../services/api'
 import type { Conversation, Message } from '../../types'
 
 const channelLabels: Record<string, string> = {
@@ -36,6 +36,7 @@ interface Props {
 export default function ConversationThread({ conversation, onClose }: Props) {
   const [replyText, setReplyText] = useState('')
   const [sending, setSending] = useState(false)
+  const updateCustomerPriority = useConversationStore((s) => s.updateCustomerPriority)
   const [selectedChannel, setSelectedChannel] = useState<string>('')
   const bottomRef = useRef<HTMLDivElement>(null)
   const { messages, setMessages, appendMessage } = useConversationStore()
@@ -73,7 +74,6 @@ export default function ConversationThread({ conversation, onClose }: Props) {
 
   const handleDelete = async () => {
     if (!conversation) return
-    if (!window.confirm('Delete this conversation permanently?')) return
     try {
       await convApi.delete(conversation.id)
       onClose?.(conversation.id)
@@ -142,6 +142,31 @@ export default function ConversationThread({ conversation, onClose }: Props) {
               </span>
             ))}
           </div>
+          <button
+            onClick={async () => {
+              if (!conversation) return
+              try {
+                if (conversation.customer_is_priority) {
+                  await custApi.removePrivilegeAllSources(conversation.customer_id)
+                  updateCustomerPriority(conversation.customer_id, false)
+                } else {
+                  await custApi.privilegeAllSources(conversation.customer_id)
+                  updateCustomerPriority(conversation.customer_id, true)
+                }
+              } catch (e) {
+                console.error(e)
+                alert('Failed to update VIP status')
+              }
+            }}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors ${
+              conversation.customer_is_priority 
+                ? 'bg-amber-100 text-amber-700 hover:bg-amber-200 border-amber-300' 
+                : 'bg-amber-50 text-amber-600 hover:bg-amber-100 border-amber-200'
+            }`}
+          >
+            <Crown className={`w-3.5 h-3.5 ${conversation.customer_is_priority ? 'text-amber-600 fill-amber-500' : 'text-amber-500 fill-amber-400'}`} aria-hidden="true" />
+            {conversation.customer_is_priority ? 'Remove Privilege' : 'Privilege'}
+          </button>
           {conversation.status !== 'resolved' && conversation.status !== 'closed' && (
             <button
               onClick={handleClose}

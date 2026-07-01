@@ -40,10 +40,51 @@ async def resolve_identity(event: InboundEvent, db: AsyncSession) -> tuple[str, 
         return _cache[cache_key]
 
     customer_id = await _find_customer(channel, identifier, event, db)
+    await _check_vip_and_flag(customer_id, channel, identifier, db)
     conversation_id = await _find_or_create_conversation(customer_id, channel, db)
 
     _cache[cache_key] = (customer_id, conversation_id)
     return customer_id, conversation_id
+
+
+async def _check_vip_and_flag(customer_id: str, channel: str, identifier: str, db: AsyncSession):
+    from app.models import VIPEntry, IdentifierType
+    import json
+    
+    # We only check VIP list for email and phone numbers (whatsapp)
+    if channel not in ("email", "whatsapp"):
+        return
+        
+    id_type = IdentifierType.email if channel == "email" else IdentifierType.phone
+    
+    # See if it's on VIP list
+    result = await db.execute(
+        select(VIPEntry).where(
+            VIPEntry.identifier == identifier,
+            VIPEntry.identifier_type == id_type,
+            VIPEntry.is_active == True,
+        )
+    )
+    if not result.scalar_one_or_none():
+        return
+        
+    # It is on VIP list, let's make sure the customer is flagged
+    c_result = await db.execute(select(Customer).where(Customer.id == customer_id))
+    cust = c_result.scalar_one_or_none()
+    if not cust:
+        return
+        
+    meta = {}
+    if cust.metadata_json:
+        try:
+            meta = json.loads(cust.metadata_json)
+        except Exception:
+            pass
+            
+    if not meta.get("is_priority", False):
+        meta["is_priority"] = True
+        cust.metadata_json = json.dumps(meta)
+        await db.flush()
 
 
 async def _find_customer(channel: str, identifier: str, event: InboundEvent, db: AsyncSession) -> str:
@@ -58,10 +99,10 @@ async def _find_customer(channel: str, identifier: str, event: InboundEvent, db:
     if ci:
         return ci.customer_id
 
-    # Step 2: Cross-reference — email is the ONLY primary identifier across channels
+    # Step 2: Cross-reference — phone is the ONLY primary identifier across channels
     customer = None
-    if channel == "email":
-        result = await db.execute(select(Customer).where(Customer.email == identifier))
+    if channel == "whatsapp":
+        result = await db.execute(select(Customer).where(Customer.phone == identifier))
         customer = result.scalar_one_or_none()
 
     if customer:
@@ -75,7 +116,7 @@ async def _find_customer(channel: str, identifier: str, event: InboundEvent, db:
     customer = Customer(
         display_name=display_name,
         email=identifier if channel == "email" else None,
-        phone=None,  # phone filled in later if customer provides it; email is primary
+        phone=identifier if channel == "whatsapp" else None,
         metadata_json="{}",
     )
     db.add(customer)

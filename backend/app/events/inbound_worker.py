@@ -6,10 +6,21 @@ from app.events.queues import InboundEvent, inbound_queue
 
 logger = logging.getLogger(__name__)
 
-# chat_id → customer_id for Telegram users waiting to provide their email
-_awaiting_email: dict[str, str] = {}
+# chat_id → customer_id for users waiting to provide their phone number
+_awaiting_phone: dict[str, str] = {}
+# cache_key → phone for users who provided a phone and are waiting for OTP
+_awaiting_otp_reply: dict[str, str] = {}
+# phone → {"otp": "1234", "customer_id": "...", "channel": "...", "identifier": "..."}
+_phone_otp_state: dict[str, dict] = {}
 
-_EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
+def _normalise_phone(phone: str) -> str | None:
+    import re
+    digits = re.sub(r'[^\d+]', '', phone)
+    if re.match(r'^\+?\d{10,15}$', digits):
+        return digits if digits.startswith('+') else f"+{digits}"
+    return None
+
+
 
 
 async def run_inbound_worker(queue: asyncio.Queue[InboundEvent]) -> None:
@@ -35,20 +46,20 @@ TELEGRAM_WELCOME = (
     "Hi! Welcome to NeoBank Support! How can we assist you today?"
 )
 
-TELEGRAM_FIRST_CONTACT_REPLY = (
+CHAT_FIRST_CONTACT_REPLY = (
     "Thank you for reaching out to NeoBank Support! Our team has received your message "
     "and will get back to you shortly.\n\n"
-    "In the meantime, please reply with your email address so we can link your "
-    "support history and assist you faster.\n\n"
+    "If you already have a previous conversation, please share your phone number with "
+    "country code in format +91xxxxxxxxxx so we can link your history.\n\n"
     "To opt out of this service, reply with just: opt out\n"
     "— NeoBank Support Team"
 )
 
-TELEGRAM_FIRST_CONTACT_PAYMENT_REPLY = (
+CHAT_FIRST_CONTACT_PAYMENT_REPLY = (
     "Thank you for reaching out to NeoBank Support! Our team has received your message "
     "and will get back to you shortly.\n\n"
     "We noticed your query may relate to a payment or transaction. To help us pull up "
-    "your account details, please reply with your email address and NeoBank account number.\n\n"
+    "your account details, please reply with your phone number and NeoBank account number.\n\n"
     "To opt out of this service, reply with just: opt out\n"
     "— NeoBank Support Team"
 )
@@ -115,7 +126,7 @@ async def _process(event: InboundEvent) -> None:
 
             # --- Cross-channel email linking (Telegram / Instagram / WhatsApp) ---
             if event.channel in ("telegram", "instagram", "whatsapp"):
-                handled = await _handle_email_linking_flow(event, customer_id, conversation_id, db)
+                handled = await _handle_phone_linking_flow(event, customer_id, conversation_id, db)
                 if handled:
                     await db.commit()
                     return  # email reply consumed — don't persist as a normal message
@@ -148,29 +159,30 @@ async def _process(event: InboundEvent) -> None:
                 if subject and not _conv.topic:
                     _conv.topic = subject
 
-            # Auto-reply for email and telegram: first contact only
-            if event.channel in ("email", "telegram") and await is_first_message(conversation_id, db):
-                if event.channel == "email" and _has_payment_keywords(event.content):
-                    auto_reply_msg = await persist_system_message(
-                        PAYMENT_AUTO_REPLY, event.channel, conversation_id, db
-                    )
-                    if _conv:
-                        _conv.status = ConversationStatus.awaiting_acc_no
-                elif event.channel == "telegram":
+            # Auto-reply for email and chat platforms: first contact only
+            if event.channel in ("email", "telegram", "instagram", "whatsapp") and await is_first_message(conversation_id, db):
+                if event.channel == "whatsapp":
                     if _has_payment_keywords(event.content):
                         auto_reply_msg = await persist_system_message(
-                            TELEGRAM_FIRST_CONTACT_PAYMENT_REPLY, event.channel, conversation_id, db
+                            PAYMENT_AUTO_REPLY, event.channel, conversation_id, db
                         )
                         if _conv:
                             _conv.status = ConversationStatus.awaiting_acc_no
                     else:
                         auto_reply_msg = await persist_system_message(
-                            TELEGRAM_FIRST_CONTACT_REPLY, event.channel, conversation_id, db
+                            AUTO_REPLY_TEXT, event.channel, conversation_id, db
                         )
                 else:
-                    auto_reply_msg = await persist_system_message(
-                        AUTO_REPLY_TEXT, event.channel, conversation_id, db
-                    )
+                    if _has_payment_keywords(event.content):
+                        auto_reply_msg = await persist_system_message(
+                            CHAT_FIRST_CONTACT_PAYMENT_REPLY, event.channel, conversation_id, db
+                        )
+                        if _conv:
+                            _conv.status = ConversationStatus.awaiting_acc_no
+                    else:
+                        auto_reply_msg = await persist_system_message(
+                            CHAT_FIRST_CONTACT_REPLY, event.channel, conversation_id, db
+                        )
 
             await db.commit()
 
@@ -309,9 +321,8 @@ async def _deliver_auto_reply(channel: str, identifier: str, text: str, raw: dic
                 body=text,
                 in_reply_to=in_reply_to,
             )
-        elif channel == "telegram":
-            from app.integrations.telegram_client import send_telegram_message
-            await send_telegram_message(identifier, text)
+        else:
+            await _send_on_channel(channel, identifier, text)
     except Exception as e:
         logger.error(f"Auto-reply delivery failed on {channel} to {identifier}: {e}")
 
@@ -337,14 +348,12 @@ async def _handle_telegram_start(event: InboundEvent, customer_id: str, db) -> N
     await _send_on_channel("telegram", event.identifier, TELEGRAM_WELCOME)
 
 
-async def _handle_email_linking_flow(event: InboundEvent, customer_id: str,
+async def _handle_phone_linking_flow(event: InboundEvent, customer_id: str,
                                       conversation_id: str, db) -> bool:
     """
-    For Telegram / Instagram / WhatsApp:
-    - If the customer has no email and just sent a valid email address → link it.
-    - If the customer has no email and this is their first message → ask for email.
-    Returns True if the message was consumed as an email-linking reply.
+    Handles phone-based OTP cross-channel linking.
     """
+    import random
     from app.models import Customer
     from sqlalchemy import select
 
@@ -353,35 +362,58 @@ async def _handle_email_linking_flow(event: InboundEvent, customer_id: str,
     content = event.content.strip()
     cache_key = f"{channel}:{identifier}"
 
-    # Case 1: waiting for email reply — only consume if message looks like an email
-    if cache_key in _awaiting_email:
-        if _EMAIL_RE.match(content.lower()):
-            await _link_to_email(channel, identifier, customer_id, content.lower(), db)
-            await _send_on_channel(channel, identifier,
-                "Done! Your account is now linked. We can see your full support history.")
-            del _awaiting_email[cache_key]
+    # Handle WhatsApp incoming 'otp' request
+    if channel == "whatsapp" and content.lower() == "otp":
+        phone = _normalise_phone(identifier)
+        if phone and phone in _phone_otp_state:
+            otp = _phone_otp_state[phone]["otp"]
+            await _send_on_channel("whatsapp", identifier, f"Your OTP is {otp}. Please send this code on the other platform to link your accounts.")
             return True
-        # Not an email — let the message through as a normal query, keep waiting state
 
-    # Case 2: new customer with no email — ask once
-    result = await db.execute(select(Customer).where(Customer.id == customer_id))
-    customer = result.scalar_one_or_none()
-    if customer and not customer.email:
-        _awaiting_email[cache_key] = customer_id
-        # Don't send a separate prompt here — the first-contact auto-reply includes the ask
-        # Fall through — still persist the original first message
+    # Case 1: waiting for OTP reply on Telegram/Instagram
+    if cache_key in _awaiting_otp_reply:
+        phone = _awaiting_otp_reply[cache_key]
+        if phone in _phone_otp_state and _phone_otp_state[phone]["otp"] == content:
+            await _link_to_phone(channel, identifier, customer_id, phone, db)
+            await _send_on_channel(channel, identifier, "Done! Your account is now linked. We can see your full support history.")
+            del _awaiting_otp_reply[cache_key]
+            del _phone_otp_state[phone]
+            return True
+        else:
+            await _send_on_channel(channel, identifier, "Incorrect OTP. Please try again or send a new message.")
+            # Don't return True here so they can keep conversing, or do we? Let's just return True to consume it
+            return True
+
+    # Case 2: waiting for phone number reply
+    if cache_key in _awaiting_phone:
+        phone = _normalise_phone(content)
+        if phone:
+            otp = str(random.randint(1000, 9999))
+            _phone_otp_state[phone] = {"otp": otp, "customer_id": customer_id}
+            _awaiting_otp_reply[cache_key] = phone
+            del _awaiting_phone[cache_key]
+            await _send_on_channel(channel, identifier, f"Please write 'otp' on WhatsApp to +91 93213 27230 to get your OTP.")
+            return True
+
+    # Case 3: new customer with no phone — ask once
+    if channel != "whatsapp":
+        result = await db.execute(select(Customer).where(Customer.id == customer_id))
+        customer = result.scalar_one_or_none()
+        if customer and not customer.phone:
+            _awaiting_phone[cache_key] = customer_id
+            # Auto-reply handles the initial text for telegram.
 
     return False
 
 
-async def _link_to_email(channel: str, identifier: str, current_customer_id: str,
-                         email: str, db) -> None:
-    """Link channel identifier to an existing email customer, or update current customer's email."""
+async def _link_to_phone(channel: str, identifier: str, current_customer_id: str,
+                         phone: str, db) -> None:
+    """Link channel identifier to an existing phone customer, or update current customer's phone."""
     from app.models import Customer, ChannelIdentifier, Conversation
     from app.services.identity_resolution import invalidate_cache
     from sqlalchemy import select, update, delete
 
-    result = await db.execute(select(Customer).where(Customer.email == email))
+    result = await db.execute(select(Customer).where(Customer.phone == phone))
     existing = result.scalar_one_or_none()
 
     if existing and existing.id != current_customer_id:
@@ -426,14 +458,14 @@ async def _link_to_email(channel: str, identifier: str, current_customer_id: str
 
         await db.execute(delete(Customer).where(Customer.id == current_customer_id))
         invalidate_cache(channel, identifier)
-        logger.info(f"Merged {channel}:{identifier} into existing customer {existing.id} ({email}), target conv: {target_conv.id if target_conv else 'none'}")
+        logger.info(f"Merged {channel}:{identifier} into existing customer {existing.id} ({phone}), target conv: {target_conv.id if target_conv else 'none'}")
     else:
-        # No existing email customer — store email on current customer
+        # No existing phone customer — store email on current customer
         result = await db.execute(select(Customer).where(Customer.id == current_customer_id))
         customer = result.scalar_one_or_none()
         if customer:
-            customer.email = email
-            logger.info(f"Updated customer {current_customer_id} email to {email}")
+            customer.phone = phone
+            logger.info(f"Updated customer {current_customer_id} phone to {phone}")
 
 
 async def _embed_message(message_id: str, content: str, conversation_id: str,

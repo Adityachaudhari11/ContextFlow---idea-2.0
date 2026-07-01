@@ -562,7 +562,7 @@ function CampaignDetail({ campaign: c, busy, onSubmit, onApprove, onDispatch, on
 
   return (
     // ← Left-aligned: removed mx-auto, use full width with max-w and pl padding
-    <div className="p-8 max-w-3xl">
+    <div className="p-8 w-full">
 
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
@@ -782,7 +782,7 @@ function NewCampaignForm({ form, setForm, busy, onCreate, onCancel }: {
 
   return (
     // ← Left-aligned: removed mx-auto, use full width with max-w and p-8
-    <div className="p-8 max-w-2xl">
+    <div className="p-8 w-full">
       <h2 className="text-xl font-semibold text-gray-900 mb-6">New Campaign</h2>
 
       <div className="space-y-5">
@@ -799,26 +799,38 @@ function NewCampaignForm({ form, setForm, busy, onCreate, onCancel }: {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">Target channels</label>
-          <div className="flex flex-wrap gap-2">
-            {ALL_CHANNELS.map((ch) => {
-              const active = form.target_channels.includes(ch)
-              return (
-                <button
-                  key={ch}
-                  type="button"
-                  onClick={() => toggleChannel(ch)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                    active
-                      ? `${CHANNEL_COLORS[ch]} border-current`
-                      : 'border-gray-200 text-gray-500 hover:border-gray-300'
-                  }`}
-                >
-                  {CHANNEL_ICONS[ch]}
-                  {ch.charAt(0).toUpperCase() + ch.slice(1)}
-                </button>
-              )
-            })}
-          </div>
+            <div className="flex flex-wrap gap-2">
+              {ALL_CHANNELS.map((ch) => {
+                const active = form.target_channels.includes(ch)
+                const isWhatsapp = ch === 'whatsapp'
+                
+                return (
+                  <div key={ch} className="relative group">
+                    <button
+                      type="button"
+                      onClick={() => !isWhatsapp && toggleChannel(ch)}
+                      disabled={isWhatsapp}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                        isWhatsapp
+                          ? 'border-gray-200 text-gray-300 bg-gray-50 cursor-not-allowed opacity-60'
+                          : active
+                          ? `${CHANNEL_COLORS[ch]} border-current`
+                          : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                      }`}
+                    >
+                      {CHANNEL_ICONS[ch]}
+                      {ch.charAt(0).toUpperCase() + ch.slice(1)}
+                    </button>
+                    {isWhatsapp && (
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-48 p-2 bg-gray-800 text-white text-[10px] rounded shadow-lg text-center z-10 pointer-events-none">
+                        Business-initiated messages via WhatsApp are disabled in the free tier as they require a payment method in Meta.
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
           {form.target_channels.length === 0 && (
             <p className="text-xs text-red-500 mt-1">Select at least one channel</p>
           )}

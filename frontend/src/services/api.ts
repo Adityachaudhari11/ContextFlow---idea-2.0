@@ -2,7 +2,7 @@ import axios from 'axios'
 import type { Conversation, Message, Customer, Transaction, AISummary, Campaign, DNCEntry, AccountTransaction } from '../types'
 
 // Dev: relative URL (Vite proxy forwards to localhost:8000)
-// Prod: VITE_API_URL = https://contextflow-187456696352.asia-south1.run.app/api/v1
+// Prod: VITE_API_URL = https://contextflow-187456696352.asia-east1.run.app/api/v1
 const client = axios.create({ baseURL: import.meta.env.VITE_API_URL ?? '/api/v1' })
 
 client.interceptors.request.use((config) => {
@@ -57,6 +57,10 @@ export const customers = {
     client.post(`/customers/${id}/toggle-priority`).then((r) => r.data),
   updatePrivilege: (id: string, data: { is_priority: boolean; priority_tag?: string | null; preferences?: string | null }) =>
     client.post(`/customers/${id}/privilege`, data).then((r) => r.data),
+  privilegeAllSources: (id: string) =>
+    client.post(`/customers/${id}/privilege_all_sources`).then((r) => r.data),
+  removePrivilegeAllSources: (id: string) =>
+    client.post(`/customers/${id}/remove_privilege_all_sources`).then((r) => r.data),
 }
 
 export const ai = {
@@ -101,6 +105,9 @@ export const compliance = {
   removeDnc: (id: string) => client.delete(`/compliance/dnc-list/${id}`).then((r) => r.data),
   consent: (customer_id: string) =>
     client.get(`/compliance/consent/${customer_id}`).then((r) => r.data),
+  vipList: () => client.get<any[]>('/compliance/vip-list').then((r) => r.data),
+  addVip: (identifier: string) => client.post('/compliance/vip-list', { identifier }).then((r) => r.data),
+  removeVip: (id: string) => client.delete(`/compliance/vip-list/${id}`).then((r) => r.data),
 }
 
 export const accounts = {

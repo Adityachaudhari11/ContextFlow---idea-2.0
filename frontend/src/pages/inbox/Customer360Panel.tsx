@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Mail, Phone, Send, MessageSquare, Monitor, Link, CreditCard, Crown, Star, Zap, Check, Edit3, X } from 'lucide-react'
+import { Mail, Phone, Send, MessageSquare, Monitor, Link, CreditCard, Crown } from 'lucide-react'
 import { useConversationStore } from '../../stores/conversationStore'
 import { customers, ai, documents, accounts } from '../../services/api'
 import type { Conversation, Customer, Transaction, AccountTransaction, BankAccount } from '../../types'
@@ -27,7 +27,7 @@ const sentimentColors: Record<string, string> = {
   frustrated: 'bg-orange-100 text-orange-700',
 }
 
-const AMOUNT_RE = /(?:Ã¢â€šÂ¹|rs\.?)\s*(\d+(?:,\d+)*(?:\.\d{1,2})?)/gi
+const AMOUNT_RE = /(?:₹|rs\.?)\s*(\d+(?:,\d+)*(?:\.\d{1,2})?)/gi
 const PLAIN_NUM_RE = /\b(\d{2,6})\b/g
 const DATE_RE = /\b(\d{1,2})[/-](\d{1,2})\b|\b(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\b|\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\s+(\d{1,2})\b/gi
 
@@ -41,7 +41,7 @@ function parseAmountsFromMessages(messages: { content: string }[]): number[] {
   for (const msg of messages) {
     const text = msg.content
 
-    // Ã¢â€šÂ¹ / rs amounts
+    // ₹ / rs amounts
     let m: RegExpExecArray | null
     AMOUNT_RE.lastIndex = 0
     while ((m = AMOUNT_RE.exec(text)) !== null) {
@@ -114,51 +114,8 @@ export default function Customer360Panel({ conversation }: Props) {
   const [docs, setDocs] = useState<any[]>([])
   const [loadingRegen, setLoadingRegen] = useState(false)
   const [showAllTxs, setShowAllTxs] = useState(false)
-  // Privilege editing state
-  const [showPrivilegeEditor, setShowPrivilegeEditor] = useState(false)
-  const [editTag, setEditTag] = useState('')
-  const [editPreferences, setEditPreferences] = useState('')
-  const [savingPrivilege, setSavingPrivilege] = useState(false)
   const { summaries, setSummary } = useConversationStore()
   const storeMessages = useConversationStore((s) => s.messages)
-  const updateCustomerPriority = useConversationStore((s) => s.updateCustomerPriority)
-
-  const PRESET_TAGS = [
-    { label: 'Ã°Å¸â€˜â€˜ VIP', value: 'VIP' },
-    { label: 'Ã¢Â­Â Preferred', value: 'Preferred' },
-    { label: 'Ã°Å¸â€Â¥ High Priority', value: 'High Priority' },
-    { label: 'Ã°Å¸ÂÂ¢ Enterprise', value: 'Enterprise' },
-  ]
-
-  const handleSavePrivilege = async (isPriority: boolean) => {
-    if (!customer) return
-    setSavingPrivilege(true)
-    try {
-      const res = await customers.updatePrivilege(customer.id, {
-        is_priority: isPriority,
-        priority_tag: editTag || null,
-        preferences: editPreferences || null,
-      })
-      setCustomer((prev) => prev ? {
-        ...prev,
-        is_priority: res.is_priority,
-        priority_tag: res.priority_tag,
-        preferences: res.preferences,
-      } : null)
-      updateCustomerPriority(customer.id, res.is_priority, res.priority_tag, res.preferences)
-      setShowPrivilegeEditor(false)
-    } catch (err) {
-      console.error('Failed to update customer privilege:', err)
-    } finally {
-      setSavingPrivilege(false)
-    }
-  }
-
-  const openPrivilegeEditor = () => {
-    setEditTag(customer?.priority_tag ?? '')
-    setEditPreferences(customer?.preferences ?? '')
-    setShowPrivilegeEditor(true)
-  }
 
   const summary = conversation ? summaries[conversation.id] : null
 
@@ -171,6 +128,23 @@ export default function Customer360Panel({ conversation }: Props) {
     customers.identifiers(conversation.customer_id).then(setIdentifiers).catch(() => setIdentifiers([]))
     documents.list(conversation.customer_id).then(setDocs)
   }, [conversation?.customer_id])
+
+  useEffect(() => {
+    if (customer && conversation) {
+      if (
+        customer.is_priority !== conversation.customer_is_priority ||
+        customer.priority_tag !== conversation.customer_priority_tag ||
+        customer.preferences !== conversation.customer_preferences
+      ) {
+        setCustomer({
+          ...customer,
+          is_priority: conversation.customer_is_priority,
+          priority_tag: conversation.customer_priority_tag ?? customer.priority_tag,
+          preferences: conversation.customer_preferences ?? customer.preferences
+        })
+      }
+    }
+  }, [conversation?.customer_is_priority, conversation?.customer_priority_tag, conversation?.customer_preferences])
 
   // Fetch transactions: account-based if linked, otherwise customer-based
   useEffect(() => {
@@ -248,7 +222,7 @@ export default function Customer360Panel({ conversation }: Props) {
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <h3 className="font-semibold text-gray-900">{customer?.display_name ?? 'Ã¢â‚¬Â¦'}</h3>
+              <h3 className="font-semibold text-gray-900">{customer?.display_name ?? '...'}</h3>
               {customer?.is_priority && (
                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-amber-100 border border-amber-300 text-amber-800 text-[10px] font-bold shadow-sm" title="Priority Customer">
                   <Crown className="w-3 h-3 text-amber-600 fill-amber-500" />
@@ -272,120 +246,6 @@ export default function Customer360Panel({ conversation }: Props) {
           </div>
         </div>
 
-        {/* Premium Privilege Management Card */}
-        {customer && (
-          <div className="mt-3.5">
-            {!showPrivilegeEditor ? (
-              <div
-                className={`rounded-xl border p-3 transition-all ${
-                  customer.is_priority
-                    ? 'bg-gradient-to-br from-amber-50 to-orange-50 border-amber-300'
-                    : 'bg-gray-50 border-gray-200'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    {customer.is_priority ? (
-                      <Crown className="w-4 h-4 text-amber-600 fill-amber-500" />
-                    ) : (
-                      <Star className="w-4 h-4 text-gray-400" />
-                    )}
-                    <div>
-                      <span className={`text-xs font-bold ${
-                        customer.is_priority ? 'text-amber-800' : 'text-gray-600'
-                      }`}>
-                        {customer.is_priority
-                          ? (customer.priority_tag ?? 'Privileged')
-                          : 'Standard Customer'}
-                      </span>
-                      {customer.preferences && (
-                        <p className="text-[10px] text-gray-500 mt-0.5 truncate max-w-[140px]">{customer.preferences}</p>
-                      )}
-                    </div>
-                  </div>
-                  <button
-                    onClick={openPrivilegeEditor}
-                    className="p-1.5 rounded-lg hover:bg-white/70 text-gray-400 hover:text-amber-600 transition-colors"
-                    title="Edit privilege"
-                  >
-                    <Edit3 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="rounded-xl border border-amber-300 bg-gradient-to-br from-amber-50 to-orange-50 p-3 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-amber-800 flex items-center gap-1.5">
-                    <Crown className="w-3.5 h-3.5 fill-amber-500" /> Edit Privilege
-                  </span>
-                  <button onClick={() => setShowPrivilegeEditor(false)} className="text-gray-400 hover:text-gray-600">
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-
-                {/* Preset Tags */}
-                <div>
-                  <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Priority Tag</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {PRESET_TAGS.map((t) => (
-                      <button
-                        key={t.value}
-                        onClick={() => setEditTag(editTag === t.value ? '' : t.value)}
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border transition-all ${
-                          editTag === t.value
-                            ? 'bg-amber-500 text-white border-amber-500 shadow-sm'
-                            : 'bg-white text-gray-600 border-gray-200 hover:border-amber-300 hover:text-amber-700'
-                        }`}
-                      >
-                        {t.label}
-                      </button>
-                    ))}
-                  </div>
-                  <input
-                    type="text"
-                    value={editTag}
-                    onChange={(e) => setEditTag(e.target.value)}
-                    placeholder="Or type a custom tagÃ¢â‚¬Â¦"
-                    className="mt-2 w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
-                  />
-                </div>
-
-                {/* Preferences */}
-                <div>
-                  <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Preferences / Notes</p>
-                  <textarea
-                    value={editPreferences}
-                    onChange={(e) => setEditPreferences(e.target.value)}
-                    placeholder="e.g. Prefers WhatsApp, callback after 5pmÃ¢â‚¬Â¦"
-                    rows={2}
-                    className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none bg-white"
-                  />
-                </div>
-
-                {/* Actions */}
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleSavePrivilege(true)}
-                    disabled={savingPrivilege}
-                    className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
-                  >
-                    {savingPrivilege ? <Zap className="w-3 h-3 animate-pulse" /> : <Check className="w-3 h-3" />}
-                    Save as Privileged
-                  </button>
-                  {customer.is_priority && (
-                    <button
-                      onClick={() => handleSavePrivilege(false)}
-                      disabled={savingPrivilege}
-                      className="px-2.5 py-1.5 border border-gray-200 text-gray-500 hover:text-red-500 hover:border-red-200 rounded-lg text-xs font-medium transition-colors"
-                    >
-                      Remove
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
 
         {/* Linked account badge */}
         {isLinked && bankAccount && (
@@ -393,10 +253,10 @@ export default function Customer360Panel({ conversation }: Props) {
             <CreditCard className="w-3.5 h-3.5 text-purple-600 flex-shrink-0" />
             <div className="flex-1 min-w-0">
               <span className="text-xs font-semibold text-purple-800">Acct #{bankAccount.account_number}</span>
-              <span className="text-xs text-purple-600 ml-1.5 capitalize">{bankAccount.account_type}</span>
+              <span className="text-xs text-purple-600 ml-1.5 capitalize"> {bankAccount.account_type}</span>
             </div>
             <span className={`text-xs font-semibold ${bankAccount.balance < 0 ? 'text-red-600' : 'text-purple-700'}`}>
-              Ã¢â€šÂ¹{Math.abs(bankAccount.balance).toLocaleString('en-IN')}{bankAccount.balance < 0 ? ' (Ã¢Ë†â€™)' : ''}
+              {bankAccount.balance < 0 ? '-' : ''}₹{Math.abs(bankAccount.balance).toLocaleString('en-IN')}
             </span>
           </div>
         )}
@@ -429,7 +289,7 @@ export default function Customer360Panel({ conversation }: Props) {
             disabled={loadingRegen}
             className="text-xs text-primary-600 hover:text-primary-800 disabled:opacity-50"
           >
-            {loadingRegen ? 'GeneratingÃ¢â‚¬Â¦' : 'Regenerate'}
+            {loadingRegen ? 'Generating...' : 'Regenerate'}
           </button>
         </div>
 
@@ -447,7 +307,7 @@ export default function Customer360Panel({ conversation }: Props) {
                 <ul className="space-y-0.5">
                   {summary.key_issues.map((issue, i) => (
                     <li key={i} className="text-xs text-gray-600 flex gap-1">
-                      <span className="text-primary-500 mt-0.5">Ã¢â‚¬Â¢</span>
+                      <span className="text-primary-500 mt-0.5">•</span>
                       {issue}
                     </li>
                   ))}
@@ -462,7 +322,7 @@ export default function Customer360Panel({ conversation }: Props) {
             )}
           </div>
         ) : (
-          <p className="text-xs text-gray-400 italic">Waiting for summaryÃ¢â‚¬Â¦</p>
+          <p className="text-xs text-gray-400 italic">Waiting for summary...</p>
         )}
       </div>
 
@@ -499,10 +359,10 @@ export default function Customer360Panel({ conversation }: Props) {
                 >
                   <div>
                     <p className="text-xs font-medium text-gray-800">{tx.merchant_name}</p>
-                    <p className="text-xs text-gray-400">{tx.merchant_category} Ã‚Â· {tx.transaction_date}</p>
+                    <p className="text-xs text-gray-400">{tx.merchant_category} &middot; {tx.transaction_date}</p>
                   </div>
                   <span className={`text-xs font-semibold ${tx.transaction_type === 'credit' ? 'text-green-600' : 'text-gray-700'}`}>
-                    {tx.transaction_type === 'credit' ? '+' : 'Ã¢Ë†â€™'}Ã¢â€šÂ¹{Number(tx.amount).toLocaleString('en-IN')}
+                    {tx.transaction_type === 'credit' ? '+' : '-'}₹{Number(tx.amount).toLocaleString('en-IN')}
                   </span>
                 </div>
               )
@@ -510,7 +370,7 @@ export default function Customer360Panel({ conversation }: Props) {
 
             {!showAllTxs && hasRelevanceSplit && otherTxs.length > 3 && (
               <p className="text-[10px] text-gray-400 mt-1">
-                +{otherTxs.length - 3} more Ã¢â‚¬â€ <button onClick={() => setShowAllTxs(true)} className="text-purple-600 hover:underline">show all</button>
+                +{otherTxs.length - 3} more &mdash; <button onClick={() => setShowAllTxs(true)} className="text-purple-600 hover:underline">show all</button>
               </p>
             )}
           </>
@@ -521,9 +381,9 @@ export default function Customer360Panel({ conversation }: Props) {
               <div key={tx.id} className="flex items-center justify-between py-1.5">
                 <div>
                   <p className="text-xs font-medium text-gray-800">{tx.merchant_name}</p>
-                  <p className="text-xs text-gray-400">{tx.merchant_category} Ã‚Â· {tx.transaction_date}</p>
+                  <p className="text-xs text-gray-400">{tx.merchant_category} &middot; {tx.transaction_date}</p>
                 </div>
-                <span className="text-xs font-semibold text-gray-700">Ã¢â€šÂ¹{Number(tx.amount).toLocaleString('en-IN')}</span>
+                <span className="text-xs font-semibold text-gray-700">₹{Number(tx.amount).toLocaleString('en-IN')}</span>
               </div>
             ))}
             {transactions.length === 0 && <p className="text-xs text-gray-400">No transactions</p>}
@@ -547,7 +407,7 @@ export default function Customer360Panel({ conversation }: Props) {
             </svg>
             <div className="flex-1 min-w-0">
               <p className="text-xs text-gray-700 truncate">{doc.filename}</p>
-              <p className="text-xs text-gray-400">{doc.processed ? `${doc.chunk_count} chunks` : 'ProcessingÃ¢â‚¬Â¦'}</p>
+              <p className="text-xs text-gray-400">{doc.processed ? `${doc.chunk_count} chunks` : 'Processing...'}</p>
             </div>
           </div>
         ))}

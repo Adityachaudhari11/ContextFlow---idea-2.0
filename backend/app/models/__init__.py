@@ -5,7 +5,7 @@ from .conversation import Conversation, ConversationStatus
 from .message import Message, SenderType, MessageDirection, MessageStatus
 from .ai_summary import AISummary, SentimentType
 from .document import UploadedDocument, FileType
-from .compliance import ConsentRecord, DNCEntry, ConsentType, ConsentStatus, IdentifierType
+from .compliance import ConsentRecord, DNCEntry, VIPEntry, ConsentType, ConsentStatus, IdentifierType
 from .campaign import Campaign, CampaignStatus
 from .transaction import Transaction
 from .bank_account import BankAccount, AccountTransaction
@@ -18,7 +18,7 @@ __all__ = [
     "Message", "SenderType", "MessageDirection", "MessageStatus",
     "AISummary", "SentimentType",
     "UploadedDocument", "FileType",
-    "ConsentRecord", "DNCEntry", "ConsentType", "ConsentStatus", "IdentifierType",
+    "ConsentRecord", "DNCEntry", "VIPEntry", "ConsentType", "ConsentStatus", "IdentifierType",
     "Campaign", "CampaignStatus",
     "Transaction",
     "BankAccount", "AccountTransaction",

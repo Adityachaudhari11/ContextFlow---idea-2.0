@@ -29,6 +29,7 @@ const sentimentConfig: Record<string, { color: string; label: string }> = {
 // Filter options per tab
 const filterOptions: Record<'active' | 'history', { key: string; label: string; activeClass: string }[]> = {
   active: [
+    { key: 'privileged',      label: 'Privileged',         activeClass: 'bg-amber-500 text-white border-amber-500'   },
     { key: 'open',            label: 'Open',               activeClass: 'bg-teal-500 text-white border-teal-500'     },
     { key: 'waiting',         label: 'Awaiting Reply',      activeClass: 'bg-amber-500 text-white border-amber-500'   },
     { key: 'awaiting_acc_no', label: 'Awaiting Acc No',     activeClass: 'bg-purple-500 text-white border-purple-500' },

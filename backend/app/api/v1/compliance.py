@@ -139,3 +139,120 @@ async def is_customer_blocked(customer_id: str, db: AsyncSession) -> bool:
         )
     )
     return result.scalar_one_or_none() is not None
+
+
+class VIPEntryOut(BaseModel):
+    id: str
+    identifier: str
+    identifier_type: str
+    is_active: bool
+    created_at: datetime
+    customer_name: str | None = None
+
+
+class VIPAddIdentifier(BaseModel):
+    identifier: str
+
+
+@router.get("/vip-list", response_model=list[VIPEntryOut])
+async def list_vip(db: AsyncSession = Depends(get_db)):
+    from app.models import VIPEntry
+    result = await db.execute(select(VIPEntry).where(VIPEntry.is_active == True))
+    entries = result.scalars().all()
+    out = []
+    for e in entries:
+        customer_name = None
+        # Try to find a matching customer to enrich
+        if e.identifier_type == IdentifierType.email:
+            cr = await db.execute(select(Customer).where(Customer.email == e.identifier))
+        else:
+            cr = await db.execute(select(Customer).where(Customer.phone == e.identifier))
+        cust = cr.scalar_one_or_none()
+        customer_name = cust.display_name if cust else None
+
+        out.append(VIPEntryOut(
+            id=e.id,
+            identifier=e.identifier,
+            identifier_type=e.identifier_type.value,
+            is_active=e.is_active,
+            created_at=e.created_at,
+            customer_name=customer_name,
+        ))
+    return out
+
+
+@router.post("/vip-list", response_model=VIPEntryOut)
+async def add_vip(body: VIPAddIdentifier, db: AsyncSession = Depends(get_db)):
+    from app.models import VIPEntry
+    import json
+    
+    identifier = body.identifier.strip().lower()
+    if not identifier:
+        raise HTTPException(status_code=400, detail="Identifier is required")
+
+    id_type = IdentifierType.email if "@" in identifier else IdentifierType.phone
+    if id_type == IdentifierType.phone:
+        # Simple normalization
+        identifier = identifier.replace(" ", "").replace("-", "")
+        if not identifier.startswith("+") and identifier.lstrip("0").isdigit():
+            identifier = "+" + identifier.lstrip("0")
+
+    existing = await db.execute(
+        select(VIPEntry).where(
+            VIPEntry.identifier == identifier,
+            VIPEntry.identifier_type == id_type,
+            VIPEntry.is_active == True,
+        )
+    )
+    if existing.scalar_one_or_none():
+        raise HTTPException(status_code=409, detail="Identifier is already on the VIP list")
+
+    soft_deleted = await db.execute(
+        select(VIPEntry).where(
+            VIPEntry.identifier == identifier,
+            VIPEntry.identifier_type == id_type,
+            VIPEntry.is_active == False,
+        )
+    )
+    entry = soft_deleted.scalar_one_or_none()
+    if entry:
+        entry.is_active = True
+    else:
+        entry = VIPEntry(identifier=identifier, identifier_type=id_type, is_active=True)
+        db.add(entry)
+
+    # Flag existing customers
+    if id_type == IdentifierType.email:
+        cr = await db.execute(select(Customer).where(Customer.email == identifier))
+    else:
+        cr = await db.execute(select(Customer).where(Customer.phone == identifier))
+    
+    cust = cr.scalar_one_or_none()
+    if cust:
+        meta = json.loads(cust.metadata_json) if cust.metadata_json else {}
+        meta["is_priority"] = True
+        cust.metadata_json = json.dumps(meta)
+
+    await db.commit()
+    await db.refresh(entry)
+
+    return VIPEntryOut(
+        id=entry.id,
+        identifier=entry.identifier,
+        identifier_type=entry.identifier_type.value,
+        is_active=entry.is_active,
+        created_at=entry.created_at,
+        customer_name=cust.display_name if cust else None,
+    )
+
+
+@router.delete("/vip-list/{entry_id}")
+async def remove_vip(entry_id: str, db: AsyncSession = Depends(get_db)):
+    from app.models import VIPEntry
+    result = await db.execute(select(VIPEntry).where(VIPEntry.id == entry_id))
+    entry = result.scalar_one_or_none()
+    if not entry:
+        raise HTTPException(status_code=404, detail="VIP entry not found")
+    entry.is_active = False
+    await db.commit()
+    return {"ok": True}

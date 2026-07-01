@@ -45,3 +45,16 @@ class DNCEntry(Base, TimestampMixin):
     __table_args__ = (
         __import__("sqlalchemy").UniqueConstraint("identifier", "identifier_type", name="uq_dnc_identifier"),
     )
+
+class VIPEntry(Base, TimestampMixin):
+    __tablename__ = "vip_list"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_uuid)
+    identifier: Mapped[str] = mapped_column(String, nullable=False)
+    identifier_type: Mapped[IdentifierType] = mapped_column(SAEnum(IdentifierType), nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    __table_args__ = (
+        __import__("sqlalchemy").UniqueConstraint("identifier", "identifier_type", name="uq_vip_identifier"),
+    )
+

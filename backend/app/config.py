@@ -35,6 +35,7 @@ class Settings(BaseSettings):
 
     # Meta — Instagram
     instagram_page_id: str = ""
+    instagram_access_token: str = ""
 
     # Storage paths
     data_dir: str = "./data"

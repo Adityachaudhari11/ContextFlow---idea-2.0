@@ -197,3 +197,123 @@ async def update_customer_privilege(
         "preferences": meta.get("preferences"),
         "metadata_json": c.metadata_json,
     }
+
+@router.post("/{customer_id}/privilege_all_sources")
+async def privilege_all_sources(customer_id: str, db: AsyncSession = Depends(get_db)):
+    """Mark the customer as priority and add all their identifiers to the global VIP list."""
+    from app.models import VIPEntry, IdentifierType
+
+    result = await db.execute(select(Customer).where(Customer.id == customer_id))
+    c = result.scalar_one_or_none()
+    if not c:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    # Mark customer as priority
+    try:
+        meta = json.loads(c.metadata_json) if c.metadata_json else {}
+    except Exception:
+        meta = {}
+    meta["is_priority"] = True
+    c.metadata_json = json.dumps(meta)
+
+    # Fetch all channel identifiers
+    ci_result = await db.execute(select(ChannelIdentifier).where(ChannelIdentifier.customer_id == customer_id))
+    identifiers = ci_result.scalars().all()
+    
+    # Also include base email and phone if any
+    unique_ids = set()
+    if c.email:
+        unique_ids.add((c.email.strip().lower(), IdentifierType.email))
+    if c.phone:
+        p = c.phone.replace(" ", "").replace("-", "")
+        if not p.startswith("+") and p.lstrip("0").isdigit():
+            p = "+" + p.lstrip("0")
+        unique_ids.add((p, IdentifierType.phone))
+        
+    for ci in identifiers:
+        val = ci.identifier.strip()
+        if ci.channel.value == "email":
+            unique_ids.add((val.lower(), IdentifierType.email))
+        elif ci.channel.value == "whatsapp":
+            p = val.replace(" ", "").replace("-", "")
+            if not p.startswith("+") and p.lstrip("0").isdigit():
+                p = "+" + p.lstrip("0")
+            unique_ids.add((p, IdentifierType.phone))
+            
+    # Add to VIPEntry if not exists
+    added_count = 0
+    for val, id_type in unique_ids:
+        existing = await db.execute(
+            select(VIPEntry).where(
+                VIPEntry.identifier == val,
+                VIPEntry.identifier_type == id_type
+            )
+        )
+        entry = existing.scalar_one_or_none()
+        if entry:
+            entry.is_active = True
+        else:
+            entry = VIPEntry(identifier=val, identifier_type=id_type, is_active=True)
+            db.add(entry)
+            added_count += 1
+            
+    await db.commit()
+    return {"status": "ok", "added_count": added_count}
+
+@router.post("/{customer_id}/remove_privilege_all_sources")
+async def remove_privilege_all_sources(customer_id: str, db: AsyncSession = Depends(get_db)):
+    """Remove priority flag from the customer and deactivate all their identifiers from the global VIP list."""
+    from app.models import VIPEntry, IdentifierType
+
+    result = await db.execute(select(Customer).where(Customer.id == customer_id))
+    c = result.scalar_one_or_none()
+    if not c:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    # Unmark customer as priority
+    try:
+        meta = json.loads(c.metadata_json) if c.metadata_json else {}
+    except Exception:
+        meta = {}
+    meta["is_priority"] = False
+    c.metadata_json = json.dumps(meta)
+
+    # Fetch all channel identifiers
+    ci_result = await db.execute(select(ChannelIdentifier).where(ChannelIdentifier.customer_id == customer_id))
+    identifiers = ci_result.scalars().all()
+    
+    unique_ids = set()
+    if c.email:
+        unique_ids.add((c.email.strip().lower(), IdentifierType.email))
+    if c.phone:
+        p = c.phone.replace(" ", "").replace("-", "")
+        if not p.startswith("+") and p.lstrip("0").isdigit():
+            p = "+" + p.lstrip("0")
+        unique_ids.add((p, IdentifierType.phone))
+        
+    for ci in identifiers:
+        val = ci.identifier.strip()
+        if ci.channel.value == "email":
+            unique_ids.add((val.lower(), IdentifierType.email))
+        elif ci.channel.value == "whatsapp":
+            p = val.replace(" ", "").replace("-", "")
+            if not p.startswith("+") and p.lstrip("0").isdigit():
+                p = "+" + p.lstrip("0")
+            unique_ids.add((p, IdentifierType.phone))
+            
+    # Remove from VIPEntry
+    removed_count = 0
+    for val, id_type in unique_ids:
+        existing = await db.execute(
+            select(VIPEntry).where(
+                VIPEntry.identifier == val,
+                VIPEntry.identifier_type == id_type
+            )
+        )
+        entry = existing.scalar_one_or_none()
+        if entry:
+            entry.is_active = False
+            removed_count += 1
+            
+    await db.commit()
+    return {"status": "ok", "removed_count": removed_count}

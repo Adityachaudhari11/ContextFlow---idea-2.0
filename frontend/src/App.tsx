@@ -6,6 +6,7 @@ import InboxPage from './pages/inbox/InboxPage'
 import CampaignsPage from './pages/CampaignsPage'
 import CompliancePage from './pages/CompliancePage'
 import AnalyticsPage from './pages/AnalyticsPage'
+import PrivacyPolicy from './pages/PrivacyPolicy'
 import BackendGate from './components/BackendGate'
 
 export default function App() {
@@ -17,6 +18,7 @@ export default function App() {
         <Route path="/" element={<Navigate to="/home" replace />} />
         <Route path="/home" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
 
         {/* Dashboard pages */}
         <Route element={<DashboardLayout />}>

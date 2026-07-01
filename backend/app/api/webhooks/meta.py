@@ -78,11 +78,20 @@ async def instagram_inbound(request: Request):
         raise HTTPException(status_code=403, detail="Invalid signature")
 
     data = json.loads(body)
+    our_page_id = settings.instagram_page_id  # e.g. "17841422443038814"
     for entry in data.get("entry", []):
         for messaging in entry.get("messaging", []):
             sender_id = messaging.get("sender", {}).get("id")
             message = messaging.get("message", {})
             if not sender_id or not message.get("text"):
+                continue
+            # Skip echo messages sent by our own page
+            if sender_id == our_page_id:
+                logger.debug(f"Ignoring echo from our own page {sender_id}")
+                continue
+            # Also skip messages explicitly marked as echo by Meta
+            if message.get("is_echo"):
+                logger.debug(f"Ignoring is_echo message from {sender_id}")
                 continue
             event = InboundEvent(
                 channel="instagram",

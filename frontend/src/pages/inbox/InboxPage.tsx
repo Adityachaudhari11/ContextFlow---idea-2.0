@@ -570,7 +570,10 @@ export default function InboxPage() {
         c.one_liner?.toLowerCase().includes(q)
       )
     })()
-    return matchSearch && (statusFilter.length === 0 || statusFilter.includes(c.status))
+    return matchSearch && (statusFilter.length === 0 || (
+      (statusFilter.includes('privileged') && c.customer_is_priority) ||
+      statusFilter.some(s => s !== 'privileged' && s === c.status)
+    ))
   })
 
   // Count privileged in current active list
