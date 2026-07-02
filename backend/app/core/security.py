@@ -64,3 +64,15 @@ async def get_current_agent(
     if agent is None:
         raise credentials_exception
     return agent
+
+def require_roles(allowed_roles: list[str]):
+    async def role_checker(
+        agent = Depends(get_current_agent)
+    ):
+        if agent.role not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not enough permissions"
+            )
+        return agent
+    return role_checker

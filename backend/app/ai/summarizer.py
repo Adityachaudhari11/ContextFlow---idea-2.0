@@ -65,6 +65,11 @@ async def generate_summary(conversation_id: str, db: AsyncSession) -> AISummary 
             sentiment = SentimentType(sentiment_val)
         except ValueError:
             sentiment = SentimentType.neutral
+        
+        # Update conversation classification
+        conv.category = data.get("category")
+        conv.department = data.get("department")
+        conv.suggested_reply = data.get("suggested_reply")
 
         # Save or update summary
         existing = await db.execute(

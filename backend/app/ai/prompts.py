@@ -8,11 +8,15 @@ Return ONLY valid JSON with this exact structure:
   "detailed_summary": "2-4 sentences explaining the full context and current state",
   "key_issues": ["issue 1", "issue 2"],
   "suggested_action": "What the agent should do next",
-  "sentiment": "positive|neutral|negative|frustrated"
+  "sentiment": "positive|neutral|negative|frustrated",
+  "category": "The category of the issue (e.g. Fraud, Inquiry, Account, Loan, Support)",
+  "department": "Which department should handle this (e.g. Fraud, Customer Service, Loans, IT)",
+  "suggested_reply": "A full drafted response that the agent could send to the customer right now"
 }
 
 Rules:
 - one_liner must be ≤15 words, present tense, no punctuation at end
 - sentiment reflects the customer's current emotional state
 - suggested_action should be specific and actionable
+- suggested_reply should be polite, professional, and ready to send
 - If past context or documents are provided, reference them in the summary if relevant"""

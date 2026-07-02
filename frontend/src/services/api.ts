@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { Conversation, Message, Customer, Transaction, AISummary, Campaign, DNCEntry, AccountTransaction } from '../types'
+import type { Conversation, Message, Customer, Transaction, AISummary, Campaign, DNCEntry, AccountTransaction, TimelineEvent } from '../types'
 
 // Dev: relative URL (Vite proxy forwards to localhost:8000)
 // Prod: VITE_API_URL = https://contextflow-187456696352.asia-east1.run.app/api/v1
@@ -53,6 +53,8 @@ export const customers = {
     client.get<Transaction[]>(`/customers/${id}/transactions`).then((r) => r.data),
   identifiers: (id: string) =>
     client.get(`/customers/${id}/identifiers`).then((r) => r.data),
+  timeline: (id: string) =>
+    client.get<TimelineEvent[]>(`/customers/${id}/timeline`).then((r) => r.data),
   togglePriority: (id: string) =>
     client.post(`/customers/${id}/toggle-priority`).then((r) => r.data),
   updatePrivilege: (id: string, data: { is_priority: boolean; priority_tag?: string | null; preferences?: string | null }) =>

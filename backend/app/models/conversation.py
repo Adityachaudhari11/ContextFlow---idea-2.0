@@ -25,6 +25,9 @@ class Conversation(Base, TimestampMixin):
     topic: Mapped[str | None] = mapped_column(String, nullable=True)
     last_message_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     linked_account_number: Mapped[str | None] = mapped_column(String, nullable=True)
+    category: Mapped[str | None] = mapped_column(String, nullable=True)
+    department: Mapped[str | None] = mapped_column(String, nullable=True)
+    suggested_reply: Mapped[str | None] = mapped_column(String, nullable=True)
 
     customer = relationship("Customer", back_populates="conversations")
     assigned_agent = relationship("Agent", back_populates="conversations", foreign_keys=[assigned_agent_id])

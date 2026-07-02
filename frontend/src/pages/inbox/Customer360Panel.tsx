@@ -114,6 +114,7 @@ export default function Customer360Panel({ conversation }: Props) {
   const [docs, setDocs] = useState<any[]>([])
   const [loadingRegen, setLoadingRegen] = useState(false)
   const [showAllTxs, setShowAllTxs] = useState(false)
+  const [timeline, setTimeline] = useState<any[]>([])
   const { summaries, setSummary } = useConversationStore()
   const storeMessages = useConversationStore((s) => s.messages)
 
@@ -123,10 +124,11 @@ export default function Customer360Panel({ conversation }: Props) {
   const convMessages = conversation ? (storeMessages[conversation.id] ?? []) : []
 
   useEffect(() => {
-    if (!conversation?.customer_id) { setCustomer(null); return }
+    if (!conversation?.customer_id) { setCustomer(null); setTimeline([]); return }
     customers.get(conversation.customer_id).then(setCustomer)
     customers.identifiers(conversation.customer_id).then(setIdentifiers).catch(() => setIdentifiers([]))
     documents.list(conversation.customer_id).then(setDocs)
+    customers.timeline(conversation.customer_id).then(setTimeline).catch(() => setTimeline([]))
   }, [conversation?.customer_id])
 
   useEffect(() => {
@@ -301,6 +303,20 @@ export default function Customer360Panel({ conversation }: Props) {
                 {summary.sentiment}
               </span>
             </div>
+            {(conversation?.category || conversation?.department) && (
+              <div className="flex gap-2 mt-2">
+                {conversation?.category && (
+                  <span className="text-[10px] font-semibold tracking-wide uppercase bg-blue-50 text-blue-700 px-2 py-1 rounded">
+                    Category: {conversation.category}
+                  </span>
+                )}
+                {conversation?.department && (
+                  <span className="text-[10px] font-semibold tracking-wide uppercase bg-indigo-50 text-indigo-700 px-2 py-1 rounded">
+                    Route: {conversation.department}
+                  </span>
+                )}
+              </div>
+            )}
             {summary.key_issues?.length > 0 && (
               <div>
                 <p className="text-xs font-medium text-gray-500 mb-1">Key Issues</p>
@@ -318,6 +334,12 @@ export default function Customer360Panel({ conversation }: Props) {
               <div className="bg-primary-50 rounded-lg p-2">
                 <p className="text-xs font-medium text-primary-700">Suggested Action</p>
                 <p className="text-xs text-primary-600 mt-0.5">{summary.suggested_action}</p>
+              </div>
+            )}
+            {conversation?.suggested_reply && (
+              <div className="bg-green-50 rounded-lg p-2 mt-2">
+                <p className="text-xs font-medium text-green-700">Suggested Reply</p>
+                <p className="text-xs text-green-600 mt-0.5 italic">"{conversation.suggested_reply}"</p>
               </div>
             )}
           </div>
@@ -411,7 +433,65 @@ export default function Customer360Panel({ conversation }: Props) {
             </div>
           </div>
         ))}
-        {docs.length === 0 && <p className="text-xs text-gray-400">No documents</p>}
+        {docs.length === 0 && <p className="text-xs text-gray-400">No documents found</p>}
+      </div>
+
+      {/* Unified Timeline */}
+      <div className="p-4 border-t border-gray-100">
+        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Unified Timeline</h4>
+        <div className="relative border-l-2 border-gray-100 ml-2 space-y-4">
+          {timeline.length === 0 && <p className="text-xs text-gray-400 pl-4">No activity found</p>}
+          {timeline.map(ev => {
+            const date = new Date(ev.timestamp)
+            const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            const dateStr = date.toLocaleDateString([], { month: 'short', day: 'numeric' })
+            
+            let icon = null
+            let content = null
+            
+            if (ev.type === 'message') {
+              const isCust = ev.data.sender_type === 'customer'
+              icon = <div className={`absolute -left-[9px] top-1 w-4 h-4 rounded-full flex items-center justify-center ${isCust ? 'bg-blue-100' : 'bg-green-100'}`}>
+                {isCust ? <Mail className="w-2.5 h-2.5 text-blue-600" /> : <Send className="w-2.5 h-2.5 text-green-600" />}
+              </div>
+              content = (
+                <div className="pl-4">
+                  <p className="text-xs font-medium text-gray-800">{isCust ? 'Customer Message' : 'Agent Reply'} <span className="text-[10px] text-gray-400 ml-1">{dateStr} {timeStr}</span></p>
+                  <p className="text-xs text-gray-600 mt-0.5 bg-gray-50 p-2 rounded-r-lg rounded-bl-lg line-clamp-2">{ev.data.content}</p>
+                </div>
+              )
+            } else if (ev.type === 'summary') {
+              icon = <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full flex items-center justify-center bg-purple-100">
+                <Monitor className="w-2.5 h-2.5 text-purple-600" />
+              </div>
+              content = (
+                <div className="pl-4">
+                  <p className="text-xs font-medium text-purple-800">AI Summary Generated <span className="text-[10px] text-gray-400 ml-1">{dateStr} {timeStr}</span></p>
+                  <p className="text-xs text-gray-600 mt-0.5 bg-purple-50 p-2 rounded-lg italic">"{ev.data.one_liner}"</p>
+                </div>
+              )
+            } else if (ev.type === 'transaction') {
+              icon = <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full flex items-center justify-center bg-amber-100">
+                <CreditCard className="w-2.5 h-2.5 text-amber-600" />
+              </div>
+              content = (
+                <div className="pl-4">
+                  <p className="text-xs font-medium text-gray-800">Transaction <span className="text-[10px] text-gray-400 ml-1">{dateStr}</span></p>
+                  <p className="text-xs text-gray-600 mt-0.5">
+                    {ev.data.merchant_name} <span className="font-medium text-gray-800 ml-1">₹{ev.data.amount.toLocaleString()}</span>
+                  </p>
+                </div>
+              )
+            }
+
+            return (
+              <div key={ev.id} className="relative">
+                {icon}
+                {content}
+              </div>
+            )
+          })}
+        </div>
       </div>
     </div>
   )

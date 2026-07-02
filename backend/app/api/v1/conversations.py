@@ -39,6 +39,9 @@ class ConversationOut(BaseModel):
     customer_is_priority: bool = False
     customer_priority_tag: Optional[str] = None
     customer_preferences: Optional[str] = None
+    category: Optional[str] = None
+    department: Optional[str] = None
+    suggested_reply: Optional[str] = None
 
 
 class MessageOut(BaseModel):
@@ -105,6 +108,9 @@ async def list_conversations(
             customer_is_priority=customer_is_priority,
             customer_priority_tag=customer_priority_tag,
             customer_preferences=customer_preferences,
+            category=conv.category,
+            department=conv.department,
+            suggested_reply=conv.suggested_reply,
         ))
     return out
 
@@ -150,6 +156,9 @@ async def get_conversation(conv_id: str, db: AsyncSession = Depends(get_db),):
         customer_is_priority=customer_is_priority,
         customer_priority_tag=customer_priority_tag,
         customer_preferences=customer_preferences,
+        category=conv.category,
+        department=conv.department,
+        suggested_reply=conv.suggested_reply,
     )
 
 

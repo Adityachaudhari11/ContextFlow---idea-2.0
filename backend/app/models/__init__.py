@@ -9,6 +9,9 @@ from .compliance import ConsentRecord, DNCEntry, VIPEntry, ConsentType, ConsentS
 from .campaign import Campaign, CampaignStatus
 from .transaction import Transaction
 from .bank_account import BankAccount, AccountTransaction
+from .card import Card
+from .loan import Loan
+from .beneficiary import Beneficiary
 
 __all__ = [
     "Base",
@@ -22,4 +25,7 @@ __all__ = [
     "Campaign", "CampaignStatus",
     "Transaction",
     "BankAccount", "AccountTransaction",
+    "Card",
+    "Loan",
+    "Beneficiary",
 ]

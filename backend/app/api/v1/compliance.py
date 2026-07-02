@@ -7,7 +7,12 @@ from app.core.security import get_current_agent
 from pydantic import BaseModel
 from datetime import datetime
 
-router = APIRouter(prefix="/compliance", tags=["compliance"])
+from app.core.security import require_roles
+router = APIRouter(
+    prefix="/compliance", 
+    tags=["compliance"],
+    dependencies=[Depends(require_roles(["admin", "manager", "compliance_officer"]))]
+)
 
 
 class DNCEntryOut(BaseModel):

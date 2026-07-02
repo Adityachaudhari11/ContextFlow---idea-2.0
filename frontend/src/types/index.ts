@@ -6,6 +6,26 @@ export interface Agent {
   full_name: string
   role: string
   is_active: boolean
+  department?: string
+  current_workload: number
+  is_available: boolean
+  performance_score: number
+}
+
+export interface ConsentRecord {
+  id: string
+  consent_type: string
+  channel: string
+  status: string
+  created_at: string
+  updated_at: string
+}
+
+export interface TimelineEvent {
+  id: string
+  type: 'message' | 'summary' | 'transaction' | 'campaign'
+  timestamp: string
+  data: any
 }
 
 export interface Customer {
@@ -18,6 +38,9 @@ export interface Customer {
   is_priority?: boolean
   priority_tag?: string
   preferences?: string
+  customer_tier: string
+  kyc_status: string
+  primary_account_number?: string
 }
 
 export interface ChannelIdentifier {
@@ -67,6 +90,12 @@ export interface Conversation {
   customer_is_priority?: boolean
   customer_priority_tag?: string
   customer_preferences?: string
+  customer_tier?: string
+  kyc_status?: string
+  primary_account_number?: string
+  category?: string
+  department?: string
+  suggested_reply?: string
 }
 
 export interface Transaction {

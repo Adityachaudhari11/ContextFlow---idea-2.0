@@ -3,11 +3,17 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_
 from app.db.session import get_db
-from app.models import Customer, ChannelIdentifier, Transaction, UploadedDocument, Agent
+from app.models import Customer, ChannelIdentifier, Transaction, UploadedDocument, Agent, Message, AISummary, Conversation, BankAccount, AccountTransaction
 from app.core.security import get_current_agent
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Any
 from datetime import datetime, date
+
+class TimelineEventOut(BaseModel):
+    id: str
+    type: str
+    timestamp: datetime
+    data: dict[str, Any]
 
 router = APIRouter(prefix="/customers", tags=["customers"])
 
@@ -23,6 +29,16 @@ class CustomerOut(BaseModel):
     priority_tag: Optional[str] = None
     preferences: Optional[str] = None
     metadata_json: Optional[str] = "{}"
+    customer_tier: str = "standard"
+    kyc_status: str = "pending"
+    primary_account_number: Optional[str] = None
+
+def mask_account(acc_no: str) -> str | None:
+    if not acc_no:
+        return None
+    if len(acc_no) <= 4:
+        return acc_no
+    return "*" * (len(acc_no) - 4) + acc_no[-4:]
 
 
 class TransactionOut(BaseModel):
@@ -75,7 +91,8 @@ async def search_customers(
                 pass
         out.append(CustomerOut(id=c.id, display_name=c.display_name, email=c.email, phone=c.phone,
                                created_at=c.created_at, channels=channels,
-                               is_priority=is_priority, priority_tag=priority_tag, preferences=preferences, metadata_json=c.metadata_json))
+                               is_priority=is_priority, priority_tag=priority_tag, preferences=preferences, metadata_json=c.metadata_json,
+                               customer_tier=c.customer_tier, kyc_status=c.kyc_status, primary_account_number=mask_account(c.primary_account_number)))
     return out
 
 
@@ -101,7 +118,8 @@ async def get_customer(customer_id: str, db: AsyncSession = Depends(get_db)):
             pass
     return CustomerOut(id=c.id, display_name=c.display_name, email=c.email, phone=c.phone,
                        created_at=c.created_at, channels=channels,
-                       is_priority=is_priority, priority_tag=priority_tag, preferences=preferences, metadata_json=c.metadata_json)
+                       is_priority=is_priority, priority_tag=priority_tag, preferences=preferences, metadata_json=c.metadata_json,
+                       customer_tier=c.customer_tier, kyc_status=c.kyc_status, primary_account_number=mask_account(c.primary_account_number))
 
 
 @router.get("/{customer_id}/transactions", response_model=list[TransactionOut])
@@ -293,3 +311,81 @@ async def remove_privilege_all_sources(customer_id: str, db: AsyncSession = Depe
     removed_count = await _sync_vip_entries(c, db, False)
     await db.commit()
     return {"status": "ok", "removed_count": removed_count}
+@router.get("/{customer_id}/timeline", response_model=list[TimelineEventOut])
+async def get_customer_timeline(customer_id: str, db: AsyncSession = Depends(get_db)):
+    events = []
+
+    # 1. Fetch Messages
+    msg_result = await db.execute(
+        select(Message)
+        .join(Conversation)
+        .where(Conversation.customer_id == customer_id)
+    )
+    for m in msg_result.scalars().all():
+        events.append({
+            "id": m.id,
+            "type": "message",
+            "timestamp": m.created_at,
+            "data": {
+                "content": m.content,
+                "sender_type": m.sender_type.value,
+                "direction": m.direction.value,
+                "channel": m.channel,
+            }
+        })
+
+    # 2. Fetch Summaries
+    summary_result = await db.execute(
+        select(AISummary)
+        .join(Conversation)
+        .where(Conversation.customer_id == customer_id)
+    )
+    for s in summary_result.scalars().all():
+        events.append({
+            "id": s.id,
+            "type": "summary",
+            "timestamp": s.generated_at,
+            "data": {
+                "one_liner": s.one_liner,
+                "sentiment": s.sentiment.value,
+                "suggested_action": s.suggested_action,
+            }
+        })
+
+    # 3. Fetch Transactions
+    tx_result = await db.execute(select(Transaction).where(Transaction.customer_id == customer_id))
+    for tx in tx_result.scalars().all():
+        # Convert date to datetime for unified sorting
+        ts = datetime.combine(tx.transaction_date, datetime.min.time())
+        events.append({
+            "id": tx.id,
+            "type": "transaction",
+            "timestamp": ts,
+            "data": {
+                "amount": float(tx.amount),
+                "merchant_name": tx.merchant_name,
+                "merchant_category": tx.merchant_category,
+            }
+        })
+
+    # Fetch linked account transactions
+    accounts_result = await db.execute(select(BankAccount).where(BankAccount.customer_id == customer_id))
+    for acc in accounts_result.scalars().all():
+        atx_result = await db.execute(select(AccountTransaction).where(AccountTransaction.account_number == acc.account_number))
+        for tx in atx_result.scalars().all():
+            ts = datetime.combine(tx.transaction_date, datetime.min.time())
+            events.append({
+                "id": tx.id,
+                "type": "transaction",
+                "timestamp": ts,
+                "data": {
+                    "amount": float(tx.amount),
+                    "merchant_name": tx.merchant_name,
+                    "merchant_category": tx.merchant_category,
+                    "account_number": mask_account(tx.account_number),
+                }
+            })
+
+    # Sort descending
+    events.sort(key=lambda x: x["timestamp"], reverse=True)
+    return events

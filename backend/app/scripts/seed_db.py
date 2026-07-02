@@ -22,6 +22,7 @@ from app.models import (
     Campaign, CampaignStatus,
     AISummary, SentimentType, Transaction, ConsentRecord, ConsentType, ConsentStatus,
     BankAccount, AccountTransaction,
+    Card, Loan, Beneficiary,
 )
 from app.core.security import hash_password
 
@@ -364,35 +365,35 @@ async def seed():
             email="agent@neobank.com",
             password_hash=hash_password("agent123"),
             full_name="Support Agent",
-            role=AgentRole.agent,
+            role=AgentRole.support_agent,
             is_active=True,
         )
         agent_manish = Agent(
             email="manish@neobanksupport.com",
             password_hash=hash_password("agent123"),
             full_name="Manish Sharma",
-            role=AgentRole.agent,
+            role=AgentRole.support_agent,
             is_active=True,
         )
         agent_priya = Agent(
             email="priya@neobanksupport.com",
             password_hash=hash_password("agent123"),
             full_name="Priya Patel",
-            role=AgentRole.agent,
+            role=AgentRole.support_agent,
             is_active=True,
         )
         agent_rahul = Agent(
             email="rahul@neobanksupport.com",
             password_hash=hash_password("agent123"),
             full_name="Rahul Singh",
-            role=AgentRole.agent,
+            role=AgentRole.support_agent,
             is_active=True,
         )
         agent_ananya = Agent(
             email="ananya@neobanksupport.com",
             password_hash=hash_password("agent123"),
             full_name="Ananya Kumar",
-            role=AgentRole.agent,
+            role=AgentRole.support_agent,
             is_active=True,
         )
         for a in [agent_admin, agent_support, agent_manish, agent_priya, agent_rahul, agent_ananya]:
@@ -460,6 +461,31 @@ async def seed():
                 channel="all",
                 status=ConsentStatus.active,
             ))
+
+            # Phase 2: Synthetic Database Objects (Cards, Loans, Beneficiaries)
+            if random.random() > 0.3:
+                db.add(Card(
+                    customer_id=customer.id,
+                    card_number=f"4{random.randint(1000, 9999)}-{random.randint(1000, 9999)}-{random.randint(1000, 9999)}-{random.randint(1000, 9999)}",
+                    card_type=random.choice(["debit", "credit"])
+                ))
+            
+            if random.random() > 0.7:
+                db.add(Loan(
+                    customer_id=customer.id,
+                    loan_type=random.choice(["personal", "home", "auto"]),
+                    principal_amount=Decimal(str(random.randint(50000, 5000000))),
+                    outstanding_amount=Decimal(str(random.randint(10000, 4500000))),
+                    next_emi_date=date.today() + timedelta(days=random.randint(1, 30))
+                ))
+            
+            for _ in range(random.randint(0, 3)):
+                db.add(Beneficiary(
+                    customer_id=customer.id,
+                    name=f"Beneficiary {random.randint(1, 100)}",
+                    account_number=str(random.randint(1000000000, 9999999999)),
+                    bank_name=random.choice(["HDFC Bank", "ICICI Bank", "SBI", "Axis Bank"])
+                ))
 
             customer_map[name] = customer
 

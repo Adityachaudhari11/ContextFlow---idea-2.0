@@ -149,7 +149,7 @@ async def _process(event: InboundEvent) -> None:
                     # Try to extract account number from reply
                     acc_no = _extract_account_number(event.content)
                     if acc_no:
-                        await _ensure_account_exists(acc_no, db)
+                        await _ensure_account_exists(acc_no, customer_id, db)
                         _conv.linked_account_number = acc_no
                         _conv.status = ConversationStatus.open
                         auto_reply_msg = await persist_system_message(
@@ -236,17 +236,21 @@ def _extract_account_number(content: str) -> str | None:
     return match.group(1) if match else None
 
 
-async def _ensure_account_exists(account_number: str, db) -> None:
+async def _ensure_account_exists(account_number: str, customer_id: str, db) -> None:
     from app.models import BankAccount
     from sqlalchemy import select
     result = await db.execute(select(BankAccount).where(BankAccount.account_number == account_number))
-    if not result.scalar_one_or_none():
+    acc = result.scalar_one_or_none()
+    if not acc:
         db.add(BankAccount(
             account_number=account_number,
             nickname="Linked Account",
             account_type="savings",
             balance=0,
+            customer_id=customer_id
         ))
+    else:
+        acc.customer_id = customer_id
 
 
 async def _handle_opt_out(event: InboundEvent, customer_id: str,
@@ -497,8 +501,10 @@ async def _embed_message(message_id: str, content: str, conversation_id: str,
 async def _summarize(conversation_id: str) -> None:
     try:
         from app.ai.summarizer import generate_summary
+        from app.services.ticket_manager import assign_ticket_to_agent
         from app.db.session import AsyncSessionLocal
         async with AsyncSessionLocal() as db:
             await generate_summary(conversation_id, db)
+            await assign_ticket_to_agent(conversation_id, db)
     except Exception as e:
         logger.error(f"Summarization error for conversation {conversation_id}: {e}")

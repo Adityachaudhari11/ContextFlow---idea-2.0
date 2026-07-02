@@ -20,6 +20,9 @@ class Customer(Base, TimestampMixin):
     display_name: Mapped[str] = mapped_column(String, nullable=False)
     email: Mapped[str | None] = mapped_column(String, nullable=True)
     phone: Mapped[str | None] = mapped_column(String, nullable=True)
+    customer_tier: Mapped[str] = mapped_column(String, default="standard")
+    kyc_status: Mapped[str] = mapped_column(String, default="pending")
+    primary_account_number: Mapped[str | None] = mapped_column(String, nullable=True)
     metadata_json: Mapped[str] = mapped_column(String, default="{}")
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
@@ -28,6 +31,10 @@ class Customer(Base, TimestampMixin):
     transactions = relationship("Transaction", back_populates="customer")
     documents = relationship("UploadedDocument", back_populates="customer")
     consent_records = relationship("ConsentRecord", back_populates="customer")
+    bank_accounts = relationship("BankAccount", back_populates="customer")
+    cards = relationship("Card", back_populates="customer", cascade="all, delete-orphan")
+    loans = relationship("Loan", back_populates="customer", cascade="all, delete-orphan")
+    beneficiaries = relationship("Beneficiary", back_populates="customer", cascade="all, delete-orphan")
 
 
 class ChannelIdentifier(Base):

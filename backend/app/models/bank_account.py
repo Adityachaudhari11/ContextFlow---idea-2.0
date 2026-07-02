@@ -12,7 +12,9 @@ class BankAccount(Base):
     nickname: Mapped[str | None] = mapped_column(String, nullable=True)
     account_type: Mapped[str] = mapped_column(String, default="savings")
     balance: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=0)
+    customer_id: Mapped[str | None] = mapped_column(String, ForeignKey("customers.id"), nullable=True)
 
+    customer = relationship("Customer", back_populates="bank_accounts")
     transactions = relationship("AccountTransaction", back_populates="account", cascade="all, delete-orphan")
 
 
