@@ -28,13 +28,18 @@ class AccountTxOut(BaseModel):
     transaction_type: str
 
 
+def mask_account(acc_no: str) -> str:
+    if not acc_no or len(acc_no) <= 4:
+        return acc_no
+    return "*" * (len(acc_no) - 4) + acc_no[-4:]
+
 @router.get("/{account_number}", response_model=AccountOut)
 async def get_account(account_number: str, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(BankAccount).where(BankAccount.account_number == account_number))
     acc = result.scalar_one_or_none()
     if not acc:
         raise HTTPException(status_code=404, detail="Account not found")
-    return AccountOut(account_number=acc.account_number, nickname=acc.nickname,
+    return AccountOut(account_number=mask_account(acc.account_number), nickname=acc.nickname,
                       account_type=acc.account_type, balance=float(acc.balance))
 
 
@@ -46,7 +51,7 @@ async def get_account_transactions(account_number: str, db: AsyncSession = Depen
         .order_by(AccountTransaction.transaction_date.desc())
     )
     return [
-        AccountTxOut(id=t.id, account_number=t.account_number, amount=float(t.amount),
+        AccountTxOut(id=t.id, account_number=mask_account(t.account_number), amount=float(t.amount),
                      merchant_name=t.merchant_name, merchant_category=t.merchant_category,
                      transaction_date=t.transaction_date, transaction_type=t.transaction_type)
         for t in result.scalars().all()
