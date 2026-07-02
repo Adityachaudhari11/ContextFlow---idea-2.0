@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Mail, Send, Phone, Monitor, MessageSquare, XCircle, Trash2, Crown } from 'lucide-react'
 import { useConversationStore } from '../../stores/conversationStore'
+import { useSettingsStore } from '../../stores/settingsStore'
 import { conversations as convApi, messages as msgApi, customers as custApi } from '../../services/api'
 import type { Conversation, Message } from '../../types'
 
@@ -40,6 +41,7 @@ export default function ConversationThread({ conversation, onClose }: Props) {
   const [selectedChannel, setSelectedChannel] = useState<string>('')
   const bottomRef = useRef<HTMLDivElement>(null)
   const { messages, setMessages, appendMessage } = useConversationStore()
+  const { privilegeCategories } = useSettingsStore()
 
   const msgs = conversation ? (messages[conversation.id] ?? []) : []
 
@@ -142,31 +144,50 @@ export default function ConversationThread({ conversation, onClose }: Props) {
               </span>
             ))}
           </div>
-          <button
-            onClick={async () => {
-              if (!conversation) return
-              try {
-                if (conversation.customer_is_priority) {
+          {conversation.customer_is_priority ? (
+            <button
+              onClick={async () => {
+                if (!conversation) return
+                try {
                   await custApi.removePrivilegeAllSources(conversation.customer_id)
                   updateCustomerPriority(conversation.customer_id, false)
-                } else {
-                  await custApi.privilegeAllSources(conversation.customer_id)
-                  updateCustomerPriority(conversation.customer_id, true)
+                } catch (e) {
+                  console.error(e)
+                  alert('Failed to update VIP status')
                 }
-              } catch (e) {
-                console.error(e)
-                alert('Failed to update VIP status')
-              }
-            }}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors ${
-              conversation.customer_is_priority 
-                ? 'bg-amber-100 text-amber-700 hover:bg-amber-200 border-amber-300' 
-                : 'bg-amber-50 text-amber-600 hover:bg-amber-100 border-amber-200'
-            }`}
-          >
-            <Crown className={`w-3.5 h-3.5 ${conversation.customer_is_priority ? 'text-amber-600 fill-amber-500' : 'text-amber-500 fill-amber-400'}`} aria-hidden="true" />
-            {conversation.customer_is_priority ? 'Remove Privilege' : 'Privilege'}
-          </button>
+              }}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors bg-amber-100 text-amber-700 hover:bg-amber-200 border-amber-300"
+            >
+              <Crown className="w-3.5 h-3.5 text-amber-600 fill-amber-500" aria-hidden="true" />
+              Remove Privilege
+            </button>
+          ) : (
+            <div className="relative flex items-center">
+              <select
+                className="appearance-none bg-amber-50 text-amber-600 border border-amber-200 rounded-lg pl-7 pr-6 py-1 text-xs font-medium focus:outline-none cursor-pointer hover:bg-amber-100 transition-colors"
+                value=""
+                onChange={async (e) => {
+                  if (!conversation) return
+                  const tag = e.target.value
+                  if (!tag) return
+                  try {
+                    await custApi.updatePrivilege(conversation.customer_id, { is_priority: true, priority_tag: tag })
+                    updateCustomerPriority(conversation.customer_id, true, tag)
+                  } catch (e) {
+                    console.error(e)
+                    alert('Failed to update VIP status')
+                  }
+                }}
+              >
+                <option value="" disabled hidden>Add Privilege</option>
+                {privilegeCategories.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+              <Crown className="w-3.5 h-3.5 absolute left-2 text-amber-500 fill-amber-400 pointer-events-none" aria-hidden="true" />
+              <svg className="w-3 h-3 absolute right-2 text-amber-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+            </div>
+          )}
           {conversation.status !== 'resolved' && conversation.status !== 'closed' && (
             <button
               onClick={handleClose}

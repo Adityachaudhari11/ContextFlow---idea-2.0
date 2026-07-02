@@ -1,7 +1,8 @@
 import { useState, useRef, useCallback } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { MessageSquare, Megaphone, Shield, BarChart3, Home, ChevronLeft, ChevronRight } from 'lucide-react'
+import { MessageSquare, Megaphone, Shield, BarChart3, Home, ChevronLeft, ChevronRight, Palette } from 'lucide-react'
 import { useWebSocket } from '../hooks/useWebSocket'
+import { useTheme, themeOptions } from '../stores/themeStore'
 
 const navItems = [
   { to: '/inbox',      label: 'Inbox',      icon: <MessageSquare className="w-5 h-5 flex-shrink-0" /> },
@@ -18,8 +19,10 @@ const DEFAULT_WIDTH = 224  // w-56
 export default function DashboardLayout() {
   useWebSocket('demo-agent')
   const navigate = useNavigate()
+  const { theme, setTheme } = useTheme()
   const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_WIDTH)
   const [open, setOpen] = useState(true)
+  const [showPalette, setShowPalette] = useState(false)
   const dragging = useRef(false)
   const startX = useRef(0)
   const startW = useRef(0)
@@ -65,8 +68,8 @@ export default function DashboardLayout() {
       {/* Sidebar */}
       <aside
         aria-label="Main navigation"
-        style={{ width: effectiveWidth }}
-        className="relative flex-shrink-0 bg-[#0f3833] flex flex-col"
+        style={{ width: effectiveWidth, backgroundColor: 'var(--sidebar-bg)' }}
+        className="relative flex-shrink-0 flex flex-col"
       >
         {/* Logo + collapse toggle */}
         <div className="h-14 flex items-center justify-between px-3 border-b border-white/10 flex-shrink-0">
@@ -100,6 +103,7 @@ export default function DashboardLayout() {
           )}
         </div>
 
+
         {/* Nav links */}
         <nav className="flex-1 py-3 space-y-0.5 px-2 overflow-hidden">
           {navItems.map((item) => (
@@ -123,6 +127,62 @@ export default function DashboardLayout() {
 
         {/* Footer */}
         <div className="px-2 pb-3 border-t border-white/10 pt-2 flex-shrink-0">
+          {/* Theme Picker — expanded */}
+          {open && sidebarWidth > 90 && (
+            <div className="mb-1">
+              <button
+                onClick={() => setShowPalette(!showPalette)}
+                className={`flex items-center gap-3 px-2 py-2 rounded-lg transition-colors text-sm font-medium w-full ${
+                  showPalette
+                    ? 'bg-white/15 text-white'
+                    : 'text-white/70 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                <Palette className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate text-xs">Theme</span>
+              </button>
+              {showPalette && (
+                <div className="flex items-center gap-1.5 px-2 py-2 mt-1">
+                  {themeOptions.map((t) => (
+                    <button
+                      key={t.name}
+                      onClick={() => setTheme(t.name)}
+                      title={t.label}
+                      className="relative group/swatch"
+                    >
+                      <div
+                        className={`w-6 h-6 rounded-full border-2 transition-all duration-200 ${
+                          theme === t.name
+                            ? 'border-white scale-110 shadow-lg'
+                            : 'border-white/20 hover:border-white/60 hover:scale-105'
+                        }`}
+                        style={{ backgroundColor: t.swatch }}
+                      />
+                      {theme === t.name && (
+                        <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-white" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          {/* Theme toggle — collapsed */}
+          {(!open || sidebarWidth <= 90) && (
+            <button
+              onClick={() => {
+                const idx = themeOptions.findIndex(t => t.name === theme)
+                setTheme(themeOptions[(idx + 1) % themeOptions.length].name)
+              }}
+              className="flex items-center justify-center w-full py-2 mb-1 rounded-lg text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+              aria-label="Cycle theme"
+            >
+              <div
+                className="w-5 h-5 rounded-full border-2 border-white/40"
+                style={{ backgroundColor: themeOptions.find(t => t.name === theme)?.swatch }}
+              />
+            </button>
+          )}
           <NavLink
             to="/home"
             aria-label={!open || sidebarWidth <= 90 ? 'Home' : undefined}
@@ -149,7 +209,8 @@ export default function DashboardLayout() {
           <button
             onClick={expand}
             aria-label="Expand sidebar"
-            className="absolute top-3.5 -right-3 z-10 w-6 h-6 rounded-full bg-[#0f3833] border border-white/20 shadow flex items-center justify-center text-white/70 hover:text-white hover:bg-teal-700 transition-colors"
+            className="absolute top-3.5 -right-3 z-10 w-6 h-6 rounded-full border border-white/20 shadow flex items-center justify-center text-white/70 hover:text-white hover:bg-teal-700 transition-colors"
+            style={{ backgroundColor: 'var(--sidebar-bg)' }}
           >
             <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
           </button>

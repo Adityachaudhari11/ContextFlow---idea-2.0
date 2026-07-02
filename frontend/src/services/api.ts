@@ -106,7 +106,7 @@ export const compliance = {
   consent: (customer_id: string) =>
     client.get(`/compliance/consent/${customer_id}`).then((r) => r.data),
   vipList: () => client.get<any[]>('/compliance/vip-list').then((r) => r.data),
-  addVip: (identifier: string) => client.post('/compliance/vip-list', { identifier }).then((r) => r.data),
+  addVip: (identifier: string, priority_tag?: string) => client.post('/compliance/vip-list', { identifier, priority_tag }).then((r) => r.data),
   removeVip: (id: string) => client.delete(`/compliance/vip-list/${id}`).then((r) => r.data),
 }
 

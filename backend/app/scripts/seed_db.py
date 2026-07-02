@@ -403,13 +403,17 @@ async def seed():
         customer_map: dict[str, Customer] = {}
         for name, email, phone in CUSTOMERS:
             segment = random.choice(["retail", "premium", "business"])
+            is_priority = segment in ("premium", "business")
+            priority_tag = random.choice(["VIP", "Employee"]) if is_priority else None
+            
             customer = Customer(
                 display_name=name,
                 email=email,
                 phone=phone,
                 metadata_json=json.dumps({
                     "segment": segment,
-                    "is_priority": segment in ("premium", "business")
+                    "is_priority": is_priority,
+                    "priority_tag": priority_tag
                 }),
             )
             db.add(customer)
@@ -422,6 +426,21 @@ async def seed():
                 (ChannelType.telegram, f"tg_{phone[-6:]}"),
             ]:
                 db.add(ChannelIdentifier(customer_id=customer.id, channel=ch_type, identifier=identifier))
+
+            if is_priority:
+                from app.models.compliance import VIPEntry, IdentifierType
+                db.add(VIPEntry(
+                    identifier=email,
+                    identifier_type=IdentifierType.email,
+                    is_active=True,
+                    priority_tag=priority_tag
+                ))
+                db.add(VIPEntry(
+                    identifier=phone,
+                    identifier_type=IdentifierType.phone,
+                    is_active=True,
+                    priority_tag=priority_tag
+                ))
 
             # Transactions
             for _ in range(random.randint(8, 15)):

@@ -148,10 +148,12 @@ class VIPEntryOut(BaseModel):
     is_active: bool
     created_at: datetime
     customer_name: str | None = None
+    priority_tag: str | None = None
 
 
 class VIPAddIdentifier(BaseModel):
     identifier: str
+    priority_tag: str | None = None
 
 
 @router.get("/vip-list", response_model=list[VIPEntryOut])
@@ -177,6 +179,7 @@ async def list_vip(db: AsyncSession = Depends(get_db)):
             is_active=e.is_active,
             created_at=e.created_at,
             customer_name=customer_name,
+            priority_tag=e.priority_tag,
         ))
     return out
 
@@ -217,8 +220,9 @@ async def add_vip(body: VIPAddIdentifier, db: AsyncSession = Depends(get_db)):
     entry = soft_deleted.scalar_one_or_none()
     if entry:
         entry.is_active = True
+        entry.priority_tag = body.priority_tag
     else:
-        entry = VIPEntry(identifier=identifier, identifier_type=id_type, is_active=True)
+        entry = VIPEntry(identifier=identifier, identifier_type=id_type, is_active=True, priority_tag=body.priority_tag)
         db.add(entry)
 
     # Flag existing customers
@@ -231,6 +235,8 @@ async def add_vip(body: VIPAddIdentifier, db: AsyncSession = Depends(get_db)):
     if cust:
         meta = json.loads(cust.metadata_json) if cust.metadata_json else {}
         meta["is_priority"] = True
+        if body.priority_tag:
+            meta["priority_tag"] = body.priority_tag
         cust.metadata_json = json.dumps(meta)
 
     await db.commit()
@@ -243,6 +249,7 @@ async def add_vip(body: VIPAddIdentifier, db: AsyncSession = Depends(get_db)):
         is_active=entry.is_active,
         created_at=entry.created_at,
         customer_name=cust.display_name if cust else None,
+        priority_tag=entry.priority_tag,
     )
 
 

@@ -26,19 +26,27 @@ const sentimentConfig: Record<string, { color: string; label: string }> = {
   frustrated:{ color: 'bg-orange-100 text-orange-700', label: 'Frustrated' },
 }
 
+import { useSettingsStore } from '../../stores/settingsStore'
+
 // Filter options per tab
 const filterOptions: Record<'active' | 'history', { key: string; label: string; activeClass: string }[]> = {
   active: [
-    { key: 'privileged',      label: 'Privileged',         activeClass: 'bg-amber-500 text-white border-amber-500'   },
-    { key: 'open',            label: 'Open',               activeClass: 'bg-teal-500 text-white border-teal-500'     },
-    { key: 'waiting',         label: 'Awaiting Reply',      activeClass: 'bg-amber-500 text-white border-amber-500'   },
-    { key: 'awaiting_acc_no', label: 'Awaiting Acc No',     activeClass: 'bg-purple-500 text-white border-purple-500' },
+    { key: 'status:open',            label: 'Open',               activeClass: 'bg-teal-500 text-white border-teal-500'     },
+    { key: 'status:waiting',         label: 'Awaiting Reply',      activeClass: 'bg-amber-500 text-white border-amber-500'   },
+    { key: 'status:awaiting_acc_no', label: 'Awaiting Acc No',     activeClass: 'bg-purple-500 text-white border-purple-500' },
   ],
   history: [
-    { key: 'resolved', label: 'Resolved', activeClass: 'bg-gray-500 text-white border-gray-500' },
-    { key: 'closed',   label: 'Closed',   activeClass: 'bg-gray-700 text-white border-gray-700' },
+    { key: 'status:resolved', label: 'Resolved', activeClass: 'bg-gray-500 text-white border-gray-500' },
+    { key: 'status:closed',   label: 'Closed',   activeClass: 'bg-gray-700 text-white border-gray-700' },
   ],
 }
+
+const sentimentOptions = [
+  { key: 'sentiment:positive',   label: 'Positive',   activeClass: 'bg-green-500 text-white border-green-500' },
+  { key: 'sentiment:neutral',    label: 'Neutral',    activeClass: 'bg-gray-500 text-white border-gray-500' },
+  { key: 'sentiment:negative',   label: 'Negative',   activeClass: 'bg-red-500 text-white border-red-500' },
+  { key: 'sentiment:frustrated', label: 'Frustrated', activeClass: 'bg-orange-500 text-white border-orange-500' },
+]
 
 function timeAgo(dateStr?: string) {
   if (!dateStr) return ''
@@ -84,7 +92,9 @@ export default function ConversationList({
   activeCount, historyCount, statusFilter, setStatusFilter,
 }: Props) {
   const activeId = useConversationStore((s) => s.activeId)
+  const { privilegeCategories, addPrivilegeCategory } = useSettingsStore()
   const [showFilter, setShowFilter] = useState(false)
+  const [newCat, setNewCat] = useState('')
 
   const toggleStatus = (key: string) => {
     setStatusFilter(
@@ -175,9 +185,9 @@ export default function ConversationList({
               transition={{ duration: 0.15 }}
               className="overflow-hidden"
             >
-              <div className="pt-2.5">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Filter by status</span>
+              <div className="pt-2.5 pb-1 space-y-3">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Filter Conversations</span>
                   {hasFilter && (
                     <button
                       onClick={() => setStatusFilter([])}
@@ -188,23 +198,101 @@ export default function ConversationList({
                     </button>
                   )}
                 </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {opts.map((opt) => {
-                    const active = statusFilter.includes(opt.key)
-                    return (
-                      <button
-                        key={opt.key}
-                        onClick={() => toggleStatus(opt.key)}
-                        className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all ${
-                          active
-                            ? opt.activeClass
-                            : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-700'
-                        }`}
-                      >
-                        {opt.label}
-                      </button>
-                    )
-                  })}
+                
+                {/* Status Options */}
+                <div>
+                  <p className="text-[10px] text-gray-400 mb-1.5 font-medium">Status</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {opts.map((opt) => {
+                      const active = statusFilter.includes(opt.key)
+                      return (
+                        <button
+                          key={opt.key}
+                          onClick={() => toggleStatus(opt.key)}
+                          className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all ${
+                            active
+                              ? opt.activeClass
+                              : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-700'
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Sentiments */}
+                <div>
+                  <p className="text-[10px] text-gray-400 mb-1.5 font-medium">Emotion / Sentiment</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {sentimentOptions.map((opt) => {
+                      const active = statusFilter.includes(opt.key)
+                      return (
+                        <button
+                          key={opt.key}
+                          onClick={() => toggleStatus(opt.key)}
+                          className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all ${
+                            active
+                              ? opt.activeClass
+                              : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-700'
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Privilege Categories */}
+                <div>
+                  <p className="text-[10px] text-gray-400 mb-1.5 font-medium">Privilege Categories</p>
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {privilegeCategories.map((cat) => {
+                      const active = statusFilter.includes(`priority:${cat}`)
+                      return (
+                        <div key={cat} className="flex items-center group relative">
+                          <button
+                            onClick={() => toggleStatus(`priority:${cat}`)}
+                            className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all ${
+                              active
+                                ? 'bg-amber-500 text-white border-amber-500'
+                                : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-700'
+                            }`}
+                          >
+                            {cat}
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  {/* Add New Category Input */}
+                  <form 
+                    className="flex items-center gap-1.5"
+                    onSubmit={(e) => {
+                      e.preventDefault()
+                      if (newCat.trim()) {
+                        addPrivilegeCategory(newCat.trim())
+                        setNewCat('')
+                      }
+                    }}
+                  >
+                    <input 
+                      type="text" 
+                      placeholder="Add new category..." 
+                      className="flex-1 min-w-0 bg-white border border-gray-200 rounded-md px-2 py-1 text-[11px] focus:outline-none focus:border-teal-400"
+                      value={newCat}
+                      onChange={(e) => setNewCat(e.target.value)}
+                    />
+                    <button 
+                      type="submit" 
+                      disabled={!newCat.trim()}
+                      className="px-2 py-1 bg-gray-100 border border-gray-200 rounded-md text-[11px] font-semibold text-gray-600 hover:bg-gray-200 disabled:opacity-50 transition-colors"
+                    >
+                      Add
+                    </button>
+                  </form>
                 </div>
               </div>
             </motion.div>

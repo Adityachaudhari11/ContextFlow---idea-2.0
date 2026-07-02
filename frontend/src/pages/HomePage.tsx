@@ -131,7 +131,7 @@ export default function HomePage() {
   const [showRegister, setShowRegister] = useState(false)
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-[#021b1a] via-[#042f2e] to-[#063330] overflow-x-hidden text-white">
+    <div className="relative min-h-screen overflow-x-hidden text-white" style={{ background: 'linear-gradient(to bottom right, var(--dark-gradient-start), var(--dark-gradient-mid), var(--dark-gradient-end))' }}>
       <RegisterModalWrapper show={showRegister} onClose={() => setShowRegister(false)} />
       <StarField />
       <FloatingOrbs />

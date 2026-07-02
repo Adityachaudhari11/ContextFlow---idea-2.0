@@ -53,6 +53,7 @@ class VIPEntry(Base, TimestampMixin):
     identifier: Mapped[str] = mapped_column(String, nullable=False)
     identifier_type: Mapped[IdentifierType] = mapped_column(SAEnum(IdentifierType), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    priority_tag: Mapped[str | None] = mapped_column(String, nullable=True)
 
     __table_args__ = (
         __import__("sqlalchemy").UniqueConstraint("identifier", "identifier_type", name="uq_vip_identifier"),

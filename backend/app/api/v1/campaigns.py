@@ -97,18 +97,18 @@ async def get_recipients(campaign_id: str, db: AsyncSession = Depends(get_db)):
 
     out = []
     for c in contacts:
-        email = (c.get("email") or "").lower()
-        if not email:
+        primary_id = (c.get("email") or c.get("whatsapp") or "").lower()
+        if not primary_id:
             continue
         channels = []
         if c.get("email"):    channels.append("email")
         if c.get("whatsapp"): channels.append("whatsapp")
         if c.get("telegram"): channels.append("telegram")
         out.append({
-            "email":    email,
+            "email":    primary_id,
             "name":     c.get("name", ""),
             "channels": channels,
-            "is_dnc":   email in dnc_emails,
+            "is_dnc":   primary_id in dnc_emails,
         })
     return out
 
@@ -209,18 +209,19 @@ async def _run_dispatch(campaign_id: str) -> None:
             delivered = 0
 
             for contact in contacts:
-                email = (contact.get("email") or "").lower()
-                if not email:
+                primary_id = (contact.get("email") or contact.get("whatsapp") or "").lower()
+                if not primary_id:
                     continue
                 # Respect locked recipient list from approval step
-                if locked_emails is not None and email not in locked_emails:
+                if locked_emails is not None and primary_id not in locked_emails:
                     continue
                 # DNC check
-                if email in dnc_emails:
-                    logger.info(f"Campaign {campaign_id}: skipping {email} (DNC)")
+                if primary_id in dnc_emails:
+                    logger.info(f"Campaign {campaign_id}: skipping {primary_id} (DNC)")
                     continue
 
-                name = (contact.get("name") or email.split("@")[0]).split()[0]
+                fallback_name = primary_id.split("@")[0] if "@" in primary_id else primary_id
+                name = (contact.get("name") or fallback_name).split()[0]
                 text = campaign.content_template.replace("{{name}}", name)
                 text += "\n\n─\nTo stop receiving messages from NeoBank, reply with just: opt out"
 
@@ -238,7 +239,7 @@ async def _run_dispatch(campaign_id: str) -> None:
                     if not identifier:
                         continue
 
-                    ok = await _send_campaign_message(channel, identifier, text, campaign.name, email)
+                    ok = await _send_campaign_message(channel, identifier, text, campaign.name, contact.get("email"))
                     sent += 1
                     if ok:
                         delivered += 1

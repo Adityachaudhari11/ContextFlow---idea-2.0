@@ -57,7 +57,8 @@ export default function BackendGate({ children }: { children: React.ReactNode })
             key="backend-gate"
             initial={{ opacity: 1 }}
             exit={{ opacity: 0, transition: { duration: 0.5 } }}
-            className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-gradient-to-br from-[#021b1a] via-[#042f2e] to-[#063330] text-white"
+            className="fixed inset-0 z-[9999] flex flex-col items-center justify-center text-white"
+            style={{ background: 'linear-gradient(to bottom right, var(--dark-gradient-start), var(--dark-gradient-mid), var(--dark-gradient-end))' }}
           >
             {/* Animated orb */}
             <motion.div

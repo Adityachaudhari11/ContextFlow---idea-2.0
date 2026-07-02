@@ -209,7 +209,7 @@ function TestEmailModal({ onClose }: { onClose: () => void }) {
                     <circle
                       cx="20" cy="20" r="18"
                       fill="none"
-                      stroke={seconds <= 3 ? '#f87171' : '#14b8a6'}
+                      stroke={seconds <= 3 ? '#f87171' : 'var(--accent-stroke)'}
                       strokeWidth="3"
                       strokeDasharray={`${circumference}`}
                       strokeDashoffset={`${circumference - progress}`}
@@ -239,7 +239,10 @@ function TestEmailModal({ onClose }: { onClose: () => void }) {
 
 // ─── Compliance & VIPs Split Drawer ───────────────────────────────────────────
 
+import { useSettingsStore } from '../../stores/settingsStore'
+
 function ComplianceVIPDrawer({ onClose }: { onClose: () => void }) {
+  const { privilegeCategories } = useSettingsStore()
   const [dncList, setDncList] = useState<DNCEntry[]>([])
   const [vipList, setVipList] = useState<Customer[]>([])
   const [dncEmail, setDncEmail] = useState('')
@@ -249,6 +252,7 @@ function ComplianceVIPDrawer({ onClose }: { onClose: () => void }) {
   const [custSearch, setCustSearch] = useState('')
   const [custResults, setCustResults] = useState<Customer[]>([])
   const [loadingVIPs, setLoadingVIPs] = useState(true)
+  const [selectedTag, setSelectedTag] = useState(privilegeCategories[0] || 'VIP')
 
   useEffect(() => {
     compliance.dncList().then(setDncList)
@@ -281,9 +285,9 @@ function ComplianceVIPDrawer({ onClose }: { onClose: () => void }) {
     setCustResults(res.filter((r) => !vipList.some((v) => v.id === r.id)))
   }
 
-  const addVIP = async (cust: Customer) => {
-    await customers.updatePrivilege(cust.id, { is_priority: true, priority_tag: 'VIP' })
-    setVipList((p) => [...p, { ...cust, is_priority: true, priority_tag: 'VIP' }])
+  const addVIP = async (cust: Customer, tag: string) => {
+    await customers.updatePrivilege(cust.id, { is_priority: true, priority_tag: tag })
+    setVipList((p) => [...p, { ...cust, is_priority: true, priority_tag: tag }])
     setCustSearch(''); setCustResults([])
   }
 
@@ -409,15 +413,26 @@ function ComplianceVIPDrawer({ onClose }: { onClose: () => void }) {
 
             {/* Add VIP */}
             <div className="px-4 py-3 border-b border-gray-100 flex-shrink-0 relative">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-                <input
-                  type="text"
-                  value={custSearch}
-                  onChange={(e) => handleCustSearch(e.target.value)}
-                  placeholder="Search customer to make VIP…"
-                  className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 bg-gray-50 focus:bg-white transition-colors"
-                />
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                  <input
+                    type="text"
+                    value={custSearch}
+                    onChange={(e) => handleCustSearch(e.target.value)}
+                    placeholder="Search customer to make VIP…"
+                    className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 bg-gray-50 focus:bg-white transition-colors"
+                  />
+                </div>
+                <select 
+                  value={selectedTag} 
+                  onChange={(e) => setSelectedTag(e.target.value)}
+                  className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs bg-gray-50 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                >
+                  {privilegeCategories.map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
               </div>
               {custResults.length > 0 && (
                 <div className="absolute top-full left-4 right-4 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl z-30 max-h-40 overflow-y-auto divide-y divide-gray-100">
@@ -428,10 +443,10 @@ function ComplianceVIPDrawer({ onClose }: { onClose: () => void }) {
                         <p className="text-[10px] text-gray-400 truncate">{r.email || r.phone}</p>
                       </div>
                       <button
-                        onClick={() => addVIP(r)}
+                        onClick={() => addVIP(r, selectedTag)}
                         className="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-[10px] font-bold shadow-sm transition-colors flex items-center gap-1"
                       >
-                        <Plus className="w-3 h-3" /> Make VIP
+                        <Plus className="w-3 h-3" /> Make {selectedTag}
                       </button>
                     </div>
                   ))}
@@ -570,10 +585,21 @@ export default function InboxPage() {
         c.one_liner?.toLowerCase().includes(q)
       )
     })()
-    return matchSearch && (statusFilter.length === 0 || (
-      (statusFilter.includes('privileged') && c.customer_is_priority) ||
-      statusFilter.some(s => s !== 'privileged' && s === c.status)
-    ))
+
+    if (!matchSearch) return false
+    if (statusFilter.length === 0) return true
+
+    // Parse filters
+    const statusKeys = statusFilter.filter(f => f.startsWith('status:')).map(f => f.split(':')[1])
+    const sentimentKeys = statusFilter.filter(f => f.startsWith('sentiment:')).map(f => f.split(':')[1])
+    const priorityKeys = statusFilter.filter(f => f.startsWith('priority:')).map(f => f.split(':')[1])
+
+    // If a specific filter type is selected, the conversation MUST match one of the selected options for that type.
+    const matchStatus = statusKeys.length === 0 || statusKeys.includes(c.status)
+    const matchSentiment = sentimentKeys.length === 0 || (c.sentiment && sentimentKeys.includes(c.sentiment))
+    const matchPriority = priorityKeys.length === 0 || (c.customer_is_priority && c.customer_priority_tag && priorityKeys.includes(c.customer_priority_tag))
+
+    return matchStatus && matchSentiment && matchPriority
   })
 
   // Count privileged in current active list

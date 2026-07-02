@@ -59,11 +59,15 @@ CHAT_FIRST_CONTACT_PAYMENT_REPLY = (
     "Thank you for reaching out to NeoBank Support! Our team has received your message "
     "and will get back to you shortly.\n\n"
     "We noticed your query may relate to a payment or transaction. To help us pull up "
-    "your account details, please reply with your phone number and NeoBank account number.\n\n"
+    "your account details, please reply with your phone number (e.g. +91xxxxxxxxxx) and NeoBank account number.\n\n"
+    "For demo purposes, try one of these accounts:\n"
+    "  • 8888 — Savings Account\n"
+    "  • 9999 — Current Account\n"
+    "  • 7777 — Credit Account\n"
+    "  • 6666 — Salary Account\n\n"
     "To opt out of this service, reply with just: opt out\n"
     "— NeoBank Support Team"
 )
-
 
 PAYMENT_KEYWORDS = frozenset({
     "payment", "transaction", "transfer", "debit", "credit", "amount",

@@ -802,18 +802,14 @@ function NewCampaignForm({ form, setForm, busy, onCreate, onCancel }: {
             <div className="flex flex-wrap gap-2">
               {ALL_CHANNELS.map((ch) => {
                 const active = form.target_channels.includes(ch)
-                const isWhatsapp = ch === 'whatsapp'
                 
                 return (
                   <div key={ch} className="relative group">
                     <button
                       type="button"
-                      onClick={() => !isWhatsapp && toggleChannel(ch)}
-                      disabled={isWhatsapp}
+                      onClick={() => toggleChannel(ch)}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                        isWhatsapp
-                          ? 'border-gray-200 text-gray-300 bg-gray-50 cursor-not-allowed opacity-60'
-                          : active
+                        active
                           ? `${CHANNEL_COLORS[ch]} border-current`
                           : 'border-gray-200 text-gray-500 hover:border-gray-300'
                       }`}
@@ -821,12 +817,6 @@ function NewCampaignForm({ form, setForm, busy, onCreate, onCancel }: {
                       {CHANNEL_ICONS[ch]}
                       {ch.charAt(0).toUpperCase() + ch.slice(1)}
                     </button>
-                    {isWhatsapp && (
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-48 p-2 bg-gray-800 text-white text-[10px] rounded shadow-lg text-center z-10 pointer-events-none">
-                        Business-initiated messages via WhatsApp are disabled in the free tier as they require a payment method in Meta.
-                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
-                      </div>
-                    )}
                   </div>
                 )
               })}

@@ -64,7 +64,8 @@ export function RegisterModal({ onClose }: { onClose: () => void }) {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.92, y: 20 }}
         transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-        className="w-full max-w-md rounded-3xl border border-teal-500/30 bg-[#0a2928] shadow-2xl shadow-teal-900/50 p-8"
+        className="w-full max-w-md rounded-3xl border border-teal-500/30 shadow-2xl shadow-teal-900/50 p-8"
+        style={{ backgroundColor: 'var(--sidebar-bg-dark)' }}
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => { if (e.key === 'Escape') onClose() }}
       >

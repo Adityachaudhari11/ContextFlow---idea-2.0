@@ -13,6 +13,114 @@
   --color-primary-900: #134e4a;
 }
 
+/* ─── Theme Custom Properties ─────────────────────────────────────── */
+:root {
+  --sidebar-bg: #0f3833;
+  --sidebar-bg-dark: #0a2928;
+  --dark-gradient-start: #021b1a;
+  --dark-gradient-mid: #042f2e;
+  --dark-gradient-end: #063330;
+  --accent-stroke: #14b8a6;
+}
+
+/* ─── Teal (Default) — no teal overrides needed ───────────────────── */
+[data-theme="teal"] {
+  --sidebar-bg: #0f3833;
+  --sidebar-bg-dark: #0a2928;
+  --dark-gradient-start: #021b1a;
+  --dark-gradient-mid: #042f2e;
+  --dark-gradient-end: #063330;
+  --accent-stroke: #14b8a6;
+}
+
+/* ─── Ocean (Blue) ────────────────────────────────────────────────── */
+[data-theme="ocean"] {
+  --color-teal-50: #eff6ff;
+  --color-teal-100: #dbeafe;
+  --color-teal-200: #bfdbfe;
+  --color-teal-300: #93c5fd;
+  --color-teal-400: #60a5fa;
+  --color-teal-500: #3b82f6;
+  --color-teal-600: #2563eb;
+  --color-teal-700: #1d4ed8;
+  --color-teal-800: #1e40af;
+  --color-teal-900: #1e3a8a;
+  --color-emerald-300: #7dd3fc;
+  --color-emerald-500: #0ea5e9;
+  --sidebar-bg: #0f1d38;
+  --sidebar-bg-dark: #0a1528;
+  --dark-gradient-start: #020a1a;
+  --dark-gradient-mid: #04182f;
+  --dark-gradient-end: #061e33;
+  --accent-stroke: #3b82f6;
+}
+
+/* ─── Violet ──────────────────────────────────────────────────────── */
+[data-theme="violet"] {
+  --color-teal-50: #f5f3ff;
+  --color-teal-100: #ede9fe;
+  --color-teal-200: #ddd6fe;
+  --color-teal-300: #c4b5fd;
+  --color-teal-400: #a78bfa;
+  --color-teal-500: #8b5cf6;
+  --color-teal-600: #7c3aed;
+  --color-teal-700: #6d28d9;
+  --color-teal-800: #5b21b6;
+  --color-teal-900: #4c1d95;
+  --color-emerald-300: #f0abfc;
+  --color-emerald-500: #d946ef;
+  --sidebar-bg: #1a0f38;
+  --sidebar-bg-dark: #130a28;
+  --dark-gradient-start: #09021a;
+  --dark-gradient-mid: #14042f;
+  --dark-gradient-end: #190633;
+  --accent-stroke: #8b5cf6;
+}
+
+/* ─── Sunset (Amber) ──────────────────────────────────────────────── */
+[data-theme="sunset"] {
+  --color-teal-50: #fffbeb;
+  --color-teal-100: #fef3c7;
+  --color-teal-200: #fde68a;
+  --color-teal-300: #fcd34d;
+  --color-teal-400: #fbbf24;
+  --color-teal-500: #f59e0b;
+  --color-teal-600: #d97706;
+  --color-teal-700: #b45309;
+  --color-teal-800: #92400e;
+  --color-teal-900: #78350f;
+  --color-emerald-300: #fdba74;
+  --color-emerald-500: #f97316;
+  --sidebar-bg: #381e0f;
+  --sidebar-bg-dark: #28160a;
+  --dark-gradient-start: #1a0c02;
+  --dark-gradient-mid: #2f1804;
+  --dark-gradient-end: #331e06;
+  --accent-stroke: #f59e0b;
+}
+
+/* ─── Rose ────────────────────────────────────────────────────────── */
+[data-theme="rose"] {
+  --color-teal-50: #fff1f2;
+  --color-teal-100: #ffe4e6;
+  --color-teal-200: #fecdd3;
+  --color-teal-300: #fda4af;
+  --color-teal-400: #fb7185;
+  --color-teal-500: #f43f5e;
+  --color-teal-600: #e11d48;
+  --color-teal-700: #be123c;
+  --color-teal-800: #9f1239;
+  --color-teal-900: #881337;
+  --color-emerald-300: #f9a8d4;
+  --color-emerald-500: #ec4899;
+  --sidebar-bg: #380f1a;
+  --sidebar-bg-dark: #280a13;
+  --dark-gradient-start: #1a0208;
+  --dark-gradient-mid: #2f0410;
+  --dark-gradient-end: #330616;
+  --accent-stroke: #f43f5e;
+}
+
 * {
   box-sizing: border-box;
 }
