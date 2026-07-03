@@ -4,7 +4,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_
 from app.db.session import get_db
 from app.models import Customer, ChannelIdentifier, Transaction, UploadedDocument, Agent, Message, AISummary, Conversation, BankAccount, AccountTransaction
-from app.core.security import get_current_agent
 from pydantic import BaseModel
 from typing import Optional, Any
 from datetime import datetime, date

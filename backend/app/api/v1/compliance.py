@@ -3,15 +3,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.db.session import get_db
 from app.models import DNCEntry, ConsentRecord, IdentifierType, Customer, Agent
-from app.core.security import get_current_agent
 from pydantic import BaseModel
 from datetime import datetime
 
-from app.core.security import require_roles
 router = APIRouter(
-    prefix="/compliance", 
+    prefix="/compliance",
     tags=["compliance"],
-    dependencies=[Depends(require_roles(["admin", "manager", "compliance_officer"]))]
 )
 
 

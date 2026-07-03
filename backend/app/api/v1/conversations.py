@@ -7,7 +7,6 @@ from app.models import (
     Conversation, Message, Customer, AISummary, ConversationStatus,
     ChannelIdentifier, MessageDirection, Agent,
 )
-from app.core.security import get_current_agent
 from app.services.message_service import persist_system_message
 from app.events.queues import outbound_queue, OutboundEvent
 from pydantic import BaseModel

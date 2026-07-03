@@ -1,10 +1,9 @@
-﻿import json
+import json
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.db.session import get_db
 from app.models import Conversation, ConversationStatus, Customer, ChannelIdentifier, MessageStatus, Message, MessageDirection, Agent
-from app.core.security import get_current_agent
 from app.services.message_service import persist_outbound_message
 from app.events.queues import outbound_queue, OutboundEvent
 from pydantic import BaseModel
@@ -43,7 +42,7 @@ async def send_message(body: SendMessageRequest, db: AsyncSession = Depends(get_
     if not ci:
         raise HTTPException(status_code=400, detail="No channel identifier found for customer")
 
-    # DNC check — block if customer's email is on the DNC list
+    # DNC check � block if customer's email is on the DNC list
     from app.api.v1.compliance import is_customer_blocked
     if await is_customer_blocked(conv.customer_id, db):
         raise HTTPException(status_code=403, detail="Customer is on the Do Not Contact list")
@@ -57,7 +56,7 @@ async def send_message(body: SendMessageRequest, db: AsyncSession = Depends(get_
         db=db,
     )
 
-    # Ticket state machine: agent replied → awaiting customer response
+    # Ticket state machine: agent replied ? awaiting customer response
     if conv.status == ConversationStatus.open:
         conv.status = ConversationStatus.waiting
 

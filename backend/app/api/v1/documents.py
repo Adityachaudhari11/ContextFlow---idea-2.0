@@ -1,9 +1,8 @@
-ï»¿from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.db.session import get_db
 from app.models import UploadedDocument, FileType, Agent
-from app.core.security import get_current_agent
 from app.config import settings
 from pydantic import BaseModel
 from pathlib import Path
@@ -40,7 +39,7 @@ async def upload_document(
     if ext not in ("pdf", "csv"):
         raise HTTPException(status_code=400, detail="Only PDF and CSV files are supported")
 
-    # Sanitize filename â€” strip path separators and special chars
+    # Sanitize filename — strip path separators and special chars
     safe_stem = _SAFE_FILENAME.sub("_", Path(raw_name).stem)[:100]
     name = f"{safe_stem}.{ext}"
 
@@ -49,7 +48,7 @@ async def upload_document(
     if len(content) > _MAX_UPLOAD_BYTES:
         raise HTTPException(status_code=413, detail="File too large (max 10 MB)")
 
-    # Save file â€” verify resolved path stays within upload_dir
+    # Save file — verify resolved path stays within upload_dir
     upload_root = Path(settings.upload_dir).resolve()
     customer_dir = upload_root / customer_id
     customer_dir.mkdir(parents=True, exist_ok=True)
