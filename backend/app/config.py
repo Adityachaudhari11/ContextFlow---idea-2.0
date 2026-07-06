@@ -40,12 +40,17 @@ class Settings(BaseSettings):
     # Storage paths
     data_dir: str = "./data"
     sqlite_db_path: str = "./data/contextflow.db"
+    sqlite_cbs_db_path: str = "./data/cbs.db"
     lancedb_path: str = "./data/lancedb"
     upload_dir: str = "./data/uploads"
 
     @property
     def sqlite_url(self) -> str:
         return f"sqlite+aiosqlite:///{self.sqlite_db_path}"
+
+    @property
+    def sqlite_cbs_url(self) -> str:
+        return f"sqlite+aiosqlite:///{self.sqlite_cbs_db_path}"
 
     def ensure_dirs(self) -> None:
         for path in [self.data_dir, self.lancedb_path, self.upload_dir]:

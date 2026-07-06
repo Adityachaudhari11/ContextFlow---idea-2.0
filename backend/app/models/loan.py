@@ -1,10 +1,11 @@
 from sqlalchemy import String, Numeric, ForeignKey, Date
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 from datetime import date
+from datetime import datetime, timezone
 from decimal import Decimal
-from .base import Base, new_uuid
+from .base import CBSBase, TimestampMixin, new_uuid, utcnow
 
-class Loan(Base):
+class Loan(CBSBase, TimestampMixin):
     __tablename__ = "loans"
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=new_uuid)

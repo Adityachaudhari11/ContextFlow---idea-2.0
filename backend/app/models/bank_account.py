@@ -2,10 +2,10 @@ from sqlalchemy import String, Numeric, Date, ForeignKey
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 from datetime import date
 from decimal import Decimal
-from .base import Base, new_uuid
+from .base import CBSBase, new_uuid
 
 
-class BankAccount(Base):
+class BankAccount(CBSBase):
     __tablename__ = "bank_accounts"
 
     account_number: Mapped[str] = mapped_column(String, primary_key=True)
@@ -18,7 +18,7 @@ class BankAccount(Base):
     transactions = relationship("AccountTransaction", back_populates="account", cascade="all, delete-orphan")
 
 
-class AccountTransaction(Base):
+class AccountTransaction(CBSBase):
     __tablename__ = "account_transactions"
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=new_uuid)

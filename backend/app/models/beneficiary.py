@@ -1,8 +1,8 @@
 from sqlalchemy import String, ForeignKey
 from sqlalchemy.orm import mapped_column, Mapped, relationship
-from .base import Base, new_uuid
+from .base import CBSBase, new_uuid
 
-class Beneficiary(Base):
+class Beneficiary(CBSBase):
     __tablename__ = "beneficiaries"
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=new_uuid)

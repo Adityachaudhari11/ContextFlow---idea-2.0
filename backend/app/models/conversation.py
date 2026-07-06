@@ -17,7 +17,8 @@ class Conversation(Base, TimestampMixin):
     __tablename__ = "conversations"
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=new_uuid)
-    customer_id: Mapped[str] = mapped_column(String, ForeignKey("customers.id"), nullable=False)
+    # Note: customer_id references CBS customers table, no strict SQL ForeignKey
+    customer_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
     assigned_agent_id: Mapped[str | None] = mapped_column(String, ForeignKey("agents.id"), nullable=True)
     status: Mapped[ConversationStatus] = mapped_column(SAEnum(ConversationStatus), default=ConversationStatus.open)
     active_channels_json: Mapped[str] = mapped_column(String, default="[]")
@@ -29,7 +30,6 @@ class Conversation(Base, TimestampMixin):
     department: Mapped[str | None] = mapped_column(String, nullable=True)
     suggested_reply: Mapped[str | None] = mapped_column(String, nullable=True)
 
-    customer = relationship("Customer", back_populates="conversations")
     assigned_agent = relationship("Agent", back_populates="conversations", foreign_keys=[assigned_agent_id])
     messages = relationship("Message", back_populates="conversation", cascade="all, delete-orphan")
     ai_summaries = relationship("AISummary", back_populates="conversation", cascade="all, delete-orphan")

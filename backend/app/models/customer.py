@@ -1,7 +1,7 @@
 from sqlalchemy import String, Enum as SAEnum, DateTime, ForeignKey
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 from datetime import datetime, timezone
-from .base import Base, TimestampMixin, new_uuid, utcnow
+from .base import CBSBase, TimestampMixin, new_uuid, utcnow
 import enum
 
 
@@ -13,7 +13,7 @@ class ChannelType(str, enum.Enum):
     simulator = "simulator"
 
 
-class Customer(Base, TimestampMixin):
+class Customer(CBSBase, TimestampMixin):
     __tablename__ = "customers"
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=new_uuid)
@@ -27,17 +27,14 @@ class Customer(Base, TimestampMixin):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
     channel_identifiers = relationship("ChannelIdentifier", back_populates="customer", cascade="all, delete-orphan")
-    conversations = relationship("Conversation", back_populates="customer")
     transactions = relationship("Transaction", back_populates="customer")
-    documents = relationship("UploadedDocument", back_populates="customer")
-    consent_records = relationship("ConsentRecord", back_populates="customer")
     bank_accounts = relationship("BankAccount", back_populates="customer")
     cards = relationship("Card", back_populates="customer", cascade="all, delete-orphan")
     loans = relationship("Loan", back_populates="customer", cascade="all, delete-orphan")
     beneficiaries = relationship("Beneficiary", back_populates="customer", cascade="all, delete-orphan")
 
 
-class ChannelIdentifier(Base):
+class ChannelIdentifier(CBSBase, TimestampMixin):
     __tablename__ = "channel_identifiers"
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=new_uuid)

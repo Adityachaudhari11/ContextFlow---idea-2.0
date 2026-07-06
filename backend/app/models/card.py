@@ -1,8 +1,8 @@
 from sqlalchemy import String, Boolean, ForeignKey
 from sqlalchemy.orm import mapped_column, Mapped, relationship
-from .base import Base, new_uuid
+from .base import CBSBase, new_uuid
 
-class Card(Base):
+class Card(CBSBase):
     __tablename__ = "cards"
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=new_uuid)

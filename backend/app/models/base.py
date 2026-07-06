@@ -13,8 +13,12 @@ def new_uuid() -> str:
 
 
 class Base(DeclarativeBase):
+    """Declarative Base for Support Platform (CRM) Models"""
     pass
 
+class CBSBase(DeclarativeBase):
+    """Declarative Base for Core Banking System (CBS) Models"""
+    pass
 
 class TimestampMixin:
     created_at: Mapped[datetime] = mapped_column(

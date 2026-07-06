@@ -12,7 +12,7 @@ from datetime import date, timedelta, datetime, timezone
 from decimal import Decimal
 import random
 
-from sqlalchemy import select, text
+from sqlalchemy import select, text, delete, func
 
 from app.db.session import AsyncSessionLocal, init_db
 from app.config import settings
@@ -320,36 +320,19 @@ CONVERSATIONS = [
 async def seed():
     settings.ensure_dirs()
 
-    # Try to delete the DB file for a fully fresh schema; fall back to DELETE if locked
-    db_path = settings.sqlite_db_path
-    if os.path.exists(db_path):
-        try:
-            os.remove(db_path)
-            print("Dropped existing database.")
-        except PermissionError:
-            print("DB file locked (backend running) — will truncate tables instead.")
+    # Try to delete the DB files for a fully fresh schema; fall back to DELETE if locked
+    db_paths = [settings.sqlite_db_path, settings.sqlite_cbs_db_path]
+    for db_path in db_paths:
+        if os.path.exists(db_path):
+            try:
+                os.remove(db_path)
+                print(f"Dropped existing database: {db_path}")
+            except PermissionError:
+                print(f"DB file locked (backend running) — will truncate tables instead: {db_path}")
 
     await init_db()
 
-    # Add new columns that create_all won't add to existing tables
-    async with AsyncSessionLocal() as db:
-        for stmt in [
-            "ALTER TABLE conversations ADD COLUMN linked_account_number TEXT",
-        ]:
-            try:
-                await db.execute(text(stmt))
-                await db.commit()
-            except Exception:
-                await db.rollback()  # column already exists — ignore
-
-    # Truncate all tables in FK order (works whether we deleted the file or not)
-    async with AsyncSessionLocal() as db:
-        for tbl in ("messages", "ai_summaries", "conversations", "channel_identifiers",
-                    "transactions", "consent_records", "dnc_list", "campaigns", "customers", "agents",
-                    "account_transactions", "bank_accounts"):
-            await db.execute(text(f"DELETE FROM {tbl}"))
-        await db.commit()
-        print("Cleared existing rows.")
+    print("Database schema initialized.")
 
     async with AsyncSessionLocal() as db:
 
@@ -494,9 +477,12 @@ async def seed():
         # Awaiting-acc-no demo customers contacted via email only — strip whatsapp/telegram
         for email_only in ("Shreya Banerjee", "Varun Pillai"):
             cust = customer_map[email_only]
-            await db.execute(text(
-                "DELETE FROM channel_identifiers WHERE customer_id = :cid AND channel IN ('whatsapp', 'telegram')"
-            ), {"cid": cust.id})
+            await db.execute(
+                delete(ChannelIdentifier).where(
+                    ChannelIdentifier.customer_id == cust.id,
+                    ChannelIdentifier.channel.in_(["whatsapp", "telegram"])
+                )
+            )
 
         print("Seeding conversations...")
         # Spread 15 conversations across last 6 months for a realistic monthly volume chart
@@ -807,11 +793,11 @@ async def seed():
 
     # Count
     async with AsyncSessionLocal() as db:
-        c_count = (await db.execute(text("SELECT COUNT(*) FROM customers"))).scalar()
-        conv_count = (await db.execute(text("SELECT COUNT(*) FROM conversations"))).scalar()
-        msg_count = (await db.execute(text("SELECT COUNT(*) FROM messages"))).scalar()
-        camp_count = (await db.execute(text("SELECT COUNT(*) FROM campaigns"))).scalar()
-        dnc_count = (await db.execute(text("SELECT COUNT(*) FROM dnc_list"))).scalar()
+        c_count = (await db.execute(select(func.count()).select_from(Customer))).scalar()
+        conv_count = (await db.execute(select(func.count()).select_from(Conversation))).scalar()
+        msg_count = (await db.execute(select(func.count()).select_from(Message))).scalar()
+        camp_count = (await db.execute(select(func.count()).select_from(Campaign))).scalar()
+        dnc_count = (await db.execute(select(func.count()).select_from(DNCEntry))).scalar()
 
     print(f"\n[OK] Seeded {c_count} customers, {conv_count} conversations, {msg_count} messages")
     print(f"[OK] {camp_count} campaigns, {dnc_count} DNC entries")

@@ -19,14 +19,13 @@ class ConsentRecord(Base, TimestampMixin):
     __tablename__ = "consent_records"
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=new_uuid)
-    customer_id: Mapped[str] = mapped_column(String, ForeignKey("customers.id"), nullable=False)
+    # References CBS customers table without a strict SQL ForeignKey
+    customer_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     consent_type: Mapped[ConsentType] = mapped_column(SAEnum(ConsentType), nullable=False)
     channel: Mapped[str] = mapped_column(String, nullable=False)
     status: Mapped[ConsentStatus] = mapped_column(SAEnum(ConsentStatus), default=ConsentStatus.active)
     consented_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-
-    customer = relationship("Customer", back_populates="consent_records")
 
 
 class IdentifierType(str, enum.Enum):
