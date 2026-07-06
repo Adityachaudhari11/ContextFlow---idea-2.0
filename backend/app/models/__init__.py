@@ -12,6 +12,7 @@ from .bank_account import BankAccount, AccountTransaction
 from .card import Card
 from .loan import Loan
 from .beneficiary import Beneficiary
+from .audit import AuditEvent
 
 __all__ = [
     "Base",
@@ -28,4 +29,5 @@ __all__ = [
     "Card",
     "Loan",
     "Beneficiary",
+    "AuditEvent",
 ]

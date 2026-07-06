@@ -5,7 +5,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell,
 } from 'recharts'
-import { MessageSquare, CheckCircle, Clock, AlertTriangle, TrendingUp, Inbox, Ban, Users, UserX, FlaskConical } from 'lucide-react'
+import { MessageSquare, CheckCircle, Clock, AlertTriangle, TrendingUp, Inbox, Ban, Users, UserX } from 'lucide-react'
 
 const CHANNEL_COLORS: Record<string, string> = {
   whatsapp: '#22c55e',
@@ -259,23 +259,21 @@ export default function AnalyticsPage() {
           </div>
         </div>
 
-        {/* ── DEMO: Agent Workload ──────────────────────────────────────────── */}
+        {/* ── Agent Workload ──────────────────────────────────────────── */}
         {workload && (
-          <div className="rounded-xl border-2 border-dashed border-amber-300 bg-amber-50/60 p-5">
-            {/* Demo header */}
-            <div className="flex items-center gap-2 mb-1">
-              <FlaskConical className="w-4 h-4 text-amber-500 flex-shrink-0" />
-              <p className="text-sm font-semibold text-amber-700">Agent Workload</p>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-200 text-amber-700 uppercase tracking-wide">Demo</span>
+          <div className="rounded-xl border border-gray-200 bg-white p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4 text-indigo-600 flex-shrink-0" />
+                <p className="text-sm font-semibold text-gray-900">Agent Workload & Assignment</p>
+              </div>
             </div>
-            <p className="text-xs text-amber-600 mb-4">Prototype view — full assignment management to be implemented. Shows who is working on what and highlights unassigned tickets for admin action.</p>
-
             <div className="grid grid-cols-2 gap-4">
               {/* Agent table */}
-              <div className="bg-white rounded-lg border border-amber-200 overflow-hidden">
-                <div className="flex items-center gap-2 px-4 py-2.5 border-b border-amber-100 bg-amber-50">
-                  <Users className="w-3.5 h-3.5 text-amber-600" />
-                  <span className="text-xs font-semibold text-amber-700">Support Team — Active Tickets</span>
+              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <div className="flex items-center gap-2 px-4 py-2.5 border-b border-gray-100 bg-gray-50">
+                  <Users className="w-3.5 h-3.5 text-gray-600" />
+                  <span className="text-xs font-semibold text-gray-700">Support Team — Active Tickets</span>
                 </div>
                 <table className="w-full text-xs">
                   <thead>

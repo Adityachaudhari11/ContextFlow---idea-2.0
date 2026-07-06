@@ -132,34 +132,27 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 app.add_middleware(SecurityHeadersMiddleware)
 
 # API routers
-from app.api.v1.auth import router as auth_router
-from app.api.v1.conversations import router as conversations_router
-from app.api.v1.accounts import router as accounts_router
-from app.api.v1.customers import router as customers_router
-from app.api.v1.messages import router as messages_router
-from app.api.v1.documents import router as documents_router
-from app.api.v1.campaigns import router as campaigns_router
-from app.api.v1.compliance import router as compliance_router
-from app.api.v1.analytics import router as analytics_router
-from app.api.v1.ai import router as ai_router
-from app.api.v1.test_endpoints import router as test_router
-from app.api.v1.register import router as register_router
+from app.api.v1 import (
+    auth, register, customers, conversations, messages,
+    campaigns, compliance, documents, analytics, accounts, ai, audit, test_endpoints
+)
 from app.api.webhooks.simulator import router as simulator_router
 from app.api.webhooks.meta import router as meta_router
 from app.api.webhooks.telegram import router as telegram_router
 
-app.include_router(auth_router, prefix="/api/v1")
-app.include_router(conversations_router, prefix="/api/v1")
-app.include_router(accounts_router, prefix="/api/v1")
-app.include_router(customers_router, prefix="/api/v1")
-app.include_router(messages_router, prefix="/api/v1")
-app.include_router(documents_router, prefix="/api/v1")
-app.include_router(campaigns_router, prefix="/api/v1")
-app.include_router(compliance_router, prefix="/api/v1")
-app.include_router(analytics_router, prefix="/api/v1")
-app.include_router(ai_router, prefix="/api/v1")
-app.include_router(test_router, prefix="/api/v1")
-app.include_router(register_router, prefix="/api/v1")
+app.include_router(auth.router, prefix="/api/v1")
+app.include_router(conversations.router, prefix="/api/v1")
+app.include_router(accounts.router, prefix="/api/v1")
+app.include_router(customers.router, prefix="/api/v1")
+app.include_router(messages.router, prefix="/api/v1")
+app.include_router(documents.router, prefix="/api/v1")
+app.include_router(campaigns.router, prefix="/api/v1")
+app.include_router(compliance.router, prefix="/api/v1")
+app.include_router(analytics.router, prefix="/api/v1")
+app.include_router(ai.router, prefix="/api/v1")
+app.include_router(audit.router, prefix="/api/v1")
+app.include_router(test_endpoints.router, prefix="/api/v1")
+app.include_router(register.router, prefix="/api/v1")
 app.include_router(simulator_router, prefix="/api/webhooks")
 app.include_router(meta_router, prefix="/api/webhooks")
 app.include_router(telegram_router, prefix="/api/webhooks")

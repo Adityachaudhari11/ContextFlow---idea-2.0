@@ -4,6 +4,7 @@ from sqlalchemy import select
 from app.db.session import get_db
 from app.models import DNCEntry, ConsentRecord, IdentifierType, Customer, Agent
 from app.core.security import get_current_agent
+from app.services.audit_service import log_audit_event
 from pydantic import BaseModel
 from datetime import datetime
 
@@ -52,7 +53,11 @@ async def list_dnc(db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/dnc-list", response_model=DNCEntryOut)
-async def add_dnc(body: DNCAddEmail, db: AsyncSession = Depends(get_db)):
+async def add_dnc(
+    body: DNCAddEmail, 
+    db: AsyncSession = Depends(get_db),
+    current_agent = Depends(get_current_agent)
+):
     email = body.email.strip().lower()
     if not email or "@" not in email:
         raise HTTPException(status_code=400, detail="A valid email address is required")
@@ -88,6 +93,9 @@ async def add_dnc(body: DNCAddEmail, db: AsyncSession = Depends(get_db)):
 
     cr = await db.execute(select(Customer).where(Customer.email == email))
     cust = cr.scalar_one_or_none()
+
+    await log_audit_event(db, current_agent.id, "add", "dnc", entry.id, {"email": email})
+
     return DNCEntryOut(
         id=entry.id,
         identifier=entry.identifier,
@@ -112,13 +120,18 @@ async def check_dnc_by_email(email: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.delete("/dnc-list/{entry_id}")
-async def remove_dnc(entry_id: str, db: AsyncSession = Depends(get_db)):
+async def remove_dnc(
+    entry_id: str, 
+    db: AsyncSession = Depends(get_db),
+    current_agent = Depends(get_current_agent)
+):
     result = await db.execute(select(DNCEntry).where(DNCEntry.id == entry_id))
     entry = result.scalar_one_or_none()
     if not entry:
         raise HTTPException(status_code=404, detail="DNC entry not found")
     entry.is_active = False
     await db.commit()
+    await log_audit_event(db, current_agent.id, "remove", "dnc", entry_id)
     return {"ok": True}
 
 
@@ -190,7 +203,11 @@ async def list_vip(db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/vip-list", response_model=VIPEntryOut)
-async def add_vip(body: VIPAddIdentifier, db: AsyncSession = Depends(get_db)):
+async def add_vip(
+    body: VIPAddIdentifier, 
+    db: AsyncSession = Depends(get_db),
+    current_agent = Depends(get_current_agent)
+):
     from app.models import VIPEntry
     import json
     
@@ -247,6 +264,8 @@ async def add_vip(body: VIPAddIdentifier, db: AsyncSession = Depends(get_db)):
     await db.commit()
     await db.refresh(entry)
 
+    await log_audit_event(db, current_agent.id, "add", "vip", entry.id, {"identifier": identifier})
+
     return VIPEntryOut(
         id=entry.id,
         identifier=entry.identifier,
@@ -259,7 +278,11 @@ async def add_vip(body: VIPAddIdentifier, db: AsyncSession = Depends(get_db)):
 
 
 @router.delete("/vip-list/{entry_id}")
-async def remove_vip(entry_id: str, db: AsyncSession = Depends(get_db)):
+async def remove_vip(
+    entry_id: str, 
+    db: AsyncSession = Depends(get_db),
+    current_agent = Depends(get_current_agent)
+):
     from app.models import VIPEntry
     result = await db.execute(select(VIPEntry).where(VIPEntry.id == entry_id))
     entry = result.scalar_one_or_none()
@@ -267,4 +290,5 @@ async def remove_vip(entry_id: str, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="VIP entry not found")
     entry.is_active = False
     await db.commit()
+    await log_audit_event(db, current_agent.id, "remove", "vip", entry_id)
     return {"ok": True}

@@ -7,6 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.db.session import get_db
 from app.models import Campaign, CampaignStatus
+from app.core.security import get_current_agent, require_roles
+from app.services.audit_service import log_audit_event
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
@@ -59,26 +61,35 @@ async def list_campaigns(db: AsyncSession = Depends(get_db)):
 
 
 @router.post("", response_model=CampaignOut)
-async def create_campaign(body: CampaignCreate, db: AsyncSession = Depends(get_db)):
+async def create_campaign(
+    body: CampaignCreate, 
+    db: AsyncSession = Depends(get_db),
+    current_agent = Depends(get_current_agent)
+):
     c = Campaign(
         name=body.name, content_template=body.content_template,
         target_channels_json=json.dumps(body.target_channels),
         audience_filter_json=json.dumps(body.audience_filter),
-        scheduled_at=body.scheduled_at, created_by=None,
+        scheduled_at=body.scheduled_at, created_by=current_agent.id,
     )
     db.add(c)
     await db.commit()
     await db.refresh(c)
+    await log_audit_event(db, current_agent.id, "create", "campaign", c.id, {"name": c.name})
     return _to_out(c)
 
-
 @router.post("/{campaign_id}/submit-review")
-async def submit_review(campaign_id: str, db: AsyncSession = Depends(get_db)):
+async def submit_review(
+    campaign_id: str, 
+    db: AsyncSession = Depends(get_db),
+    current_agent = Depends(get_current_agent)
+):
     c = await _get_campaign(campaign_id, db)
     if c.status != CampaignStatus.draft:
         raise HTTPException(status_code=400, detail="Only draft campaigns can be submitted for review")
     c.status = CampaignStatus.pending_approval
     await db.commit()
+    await log_audit_event(db, current_agent.id, "submit_review", "campaign", c.id)
     return {"status": "submitted"}
 
 
@@ -119,19 +130,24 @@ async def get_recipients(campaign_id: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/{campaign_id}/approve")
-async def approve_campaign(campaign_id: str, body: ApproveRequest = ApproveRequest(),
-                            db: AsyncSession = Depends(get_db)):
+async def approve_campaign(
+    campaign_id: str, 
+    body: ApproveRequest = ApproveRequest(),
+    db: AsyncSession = Depends(get_db),
+    current_agent = Depends(get_current_agent)
+):
     c = await _get_campaign(campaign_id, db)
     if c.status != CampaignStatus.pending_approval:
         raise HTTPException(status_code=400, detail="Only pending campaigns can be approved")
     c.status = CampaignStatus.approved
-    c.approved_by = None
+    c.approved_by = current_agent.id
     # Lock approved recipient list into audience_filter
     if body.locked_emails is not None:
         af = json.loads(c.audience_filter_json)
         af["locked_emails"] = [e.lower().strip() for e in body.locked_emails]
         c.audience_filter_json = json.dumps(af)
     await db.commit()
+    await log_audit_event(db, current_agent.id, "approve", "campaign", c.id)
     return {"status": "approved"}
 
 
@@ -140,7 +156,12 @@ class ScheduleRequest(BaseModel):
 
 
 @router.post("/{campaign_id}/schedule")
-async def schedule_campaign(campaign_id: str, body: ScheduleRequest, db: AsyncSession = Depends(get_db)):
+async def schedule_campaign(
+    campaign_id: str, 
+    body: ScheduleRequest, 
+    db: AsyncSession = Depends(get_db),
+    current_agent = Depends(get_current_agent)
+):
     c = await _get_campaign(campaign_id, db)
     if c.status != CampaignStatus.approved:
         raise HTTPException(status_code=400, detail="Only approved campaigns can be scheduled")
@@ -150,6 +171,7 @@ async def schedule_campaign(campaign_id: str, body: ScheduleRequest, db: AsyncSe
     scheduled_utc = body.scheduled_at.astimezone(_tz.utc)
     c.scheduled_at = scheduled_utc
     await db.commit()
+    await log_audit_event(db, current_agent.id, "schedule", "campaign", c.id, {"scheduled_at": c.scheduled_at.isoformat()})
     from app.events.campaign_scheduler import log_event
     log_event("scheduled", c.id, c.name, c.scheduled_at)
     logger.info(f"Campaign {c.id} ({c.name}) scheduled for {c.scheduled_at.isoformat()}")
@@ -157,23 +179,32 @@ async def schedule_campaign(campaign_id: str, body: ScheduleRequest, db: AsyncSe
 
 
 @router.post("/{campaign_id}/dispatch")
-async def dispatch_campaign(campaign_id: str, db: AsyncSession = Depends(get_db)):
+async def dispatch_campaign(
+    campaign_id: str, 
+    db: AsyncSession = Depends(get_db),
+    current_agent = Depends(get_current_agent)
+):
     c = await _get_campaign(campaign_id, db)
     if c.status not in (CampaignStatus.approved, CampaignStatus.scheduled):
         raise HTTPException(status_code=400, detail="Only approved or scheduled campaigns can be dispatched")
     c.status = CampaignStatus.running
     await db.commit()
+    await log_audit_event(db, current_agent.id, "dispatch", "campaign", c.id)
     asyncio.create_task(_run_dispatch(campaign_id))
     return {"status": "running"}
 
-
 @router.delete("/{campaign_id}")
-async def delete_campaign(campaign_id: str, db: AsyncSession = Depends(get_db)):
+async def delete_campaign(
+    campaign_id: str, 
+    db: AsyncSession = Depends(get_db),
+    current_agent = Depends(get_current_agent)
+):
     c = await _get_campaign(campaign_id, db)
     if c.status in (CampaignStatus.running,):
         raise HTTPException(status_code=400, detail="Cannot cancel a running campaign")
     c.status = CampaignStatus.cancelled
     await db.commit()
+    await log_audit_event(db, current_agent.id, "cancel", "campaign", c.id)
     return {"status": "cancelled"}
 
 
