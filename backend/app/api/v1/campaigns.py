@@ -14,11 +14,9 @@ from typing import Optional
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
-from app.core.security import require_roles
 router = APIRouter(
-    prefix="/campaigns", 
+    prefix="/campaigns",
     tags=["campaigns"],
-    dependencies=[Depends(require_roles(["admin", "manager", "campaign_manager"]))]
 )
 
 WHITELIST_PATH = Path(__file__).resolve().parent.parent.parent.parent.parent / "whitelist.json"

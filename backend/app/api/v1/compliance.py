@@ -8,11 +8,9 @@ from app.services.audit_service import log_audit_event
 from pydantic import BaseModel
 from datetime import datetime
 
-from app.core.security import require_roles
 router = APIRouter(
-    prefix="/compliance", 
+    prefix="/compliance",
     tags=["compliance"],
-    dependencies=[Depends(require_roles(["admin", "manager", "compliance_officer"]))]
 )
 
 

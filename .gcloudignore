@@ -34,8 +34,6 @@ run.py
 Resources/
 *.md
 *.docx
-Dockerfile.base
-cloudbuild.base.yaml
 
 # IDE
 .vscode
